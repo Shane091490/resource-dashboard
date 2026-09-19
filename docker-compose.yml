@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dashboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dashboard}
+      POSTGRES_DB: ${POSTGRES_DB:-dashboard}
+    volumes:
+      - dashboard_db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashboard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-dashboard}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-dashboard}
+      PGDATABASE: ${POSTGRES_DB:-dashboard}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PORT: 3000
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - dashboard_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8083}:80"
+    volumes:
+      - dashboard_uploads:/uploads:ro
+    depends_on:
+      - app
+
+volumes:
+  dashboard_db_data:
+  dashboard_uploads:
