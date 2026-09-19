@@ -11,6 +11,7 @@ import categoriesRoutes from "./routes/categories.js";
 import resourcesRoutes from "./routes/resources.js";
 import mediaRoutes from "./routes/media.js";
 import dataRoutes from "./routes/data.js";
+import settingsRoutes from "./routes/settings.js";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -24,6 +25,7 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/resources", resourcesRoutes);
 app.use("/api/uploads", mediaRoutes);
 app.use("/api/data", dataRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 

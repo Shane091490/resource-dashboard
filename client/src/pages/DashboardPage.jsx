@@ -35,6 +35,30 @@ function resolveCategoryId(categories, sortableId) {
   return null;
 }
 
+function columnCountForWidth(width) {
+  if (width >= 1024) return 3;
+  if (width >= 640) return 2;
+  return 1;
+}
+
+// CSS multi-column (`column-count`) balances content height across columns and will happily use
+// fewer than the requested count when there isn't much content, so a handful of short category
+// cards can render in 2 columns instead of 3. Distributing into explicit column arrays here
+// guarantees the requested column count regardless of content length.
+function useColumnCount() {
+  const [count, setCount] = useState(() => (typeof window === "undefined" ? 3 : columnCountForWidth(window.innerWidth)));
+
+  useEffect(() => {
+    function onResize() {
+      setCount(columnCountForWidth(window.innerWidth));
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return count;
+}
+
 function moveAcrossContainers(categories, activeSortableId, fromCategoryId, toCategoryId, overSortableId) {
   const fromCat = categories.find((c) => c.id === fromCategoryId);
   const movedResource = fromCat?.resources.find((r) => `resource-${r.id}` === activeSortableId);
@@ -73,9 +97,11 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   const [addingPage, setAddingPage] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [dashboardTitle, setDashboardTitle] = useState("Dashboard");
 
   const isAdmin = !!user.is_admin;
   const canEdit = isAdmin && isEditMode;
+  const columnCount = useColumnCount();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -91,6 +117,17 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   useEffect(() => {
     loadPages().catch((err) => showToast(err.message));
   }, [loadPages, showToast]);
+
+  useEffect(() => {
+    api
+      .getPublicSettings()
+      .then(({ dashboardTitle }) => setDashboardTitle(dashboardTitle))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    document.title = dashboardTitle;
+  }, [dashboardTitle]);
 
   useEffect(() => {
     if (!pages.length) return;
@@ -130,6 +167,12 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
       }))
       .filter((cat) => cat.resources.length > 0);
   }, [categories, search]);
+
+  const columns = useMemo(() => {
+    const cols = Array.from({ length: columnCount }, () => []);
+    filteredCategories.forEach((cat, i) => cols[i % columnCount].push(cat));
+    return cols;
+  }, [filteredCategories, columnCount]);
 
   function handleDragStart(event) {
     setActiveDragId(event.active.id);
@@ -206,6 +249,12 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
       if (prev) showToast("Changes saved.");
       return next;
     });
+  }
+
+  async function handleSaveTitle(title) {
+    const { dashboardTitle } = await api.saveAppSettings({ dashboardTitle: title });
+    setDashboardTitle(dashboardTitle);
+    showToast("Dashboard title updated.");
   }
 
   function handleNavigatePage(page) {
@@ -302,6 +351,8 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         onToggleEditMode={isAdmin ? handleToggleEditMode : undefined}
         onOpenSettings={() => navigate("/settings")}
         onLogout={onLogout}
+        dashboardTitle={dashboardTitle}
+        onSaveTitle={handleSaveTitle}
       />
 
       <main className="dashboard-main">
@@ -313,18 +364,22 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <SortableContext items={filteredCategories.map((c) => `categorycard-${c.id}`)} strategy={rectSortingStrategy}>
               <div className="category-columns">
-                {filteredCategories.map((category) => (
-                  <CategoryCard
-                    key={category.id}
-                    category={category}
-                    isAdmin={isAdmin}
-                    isEditMode={isEditMode}
-                    onEditCategory={setEditingCategory}
-                    onDeleteCategory={setDeletingCategory}
-                    onAddResource={setAddingResourceTo}
-                    onEditResource={setEditingResource}
-                    onDeleteResource={setDeletingResource}
-                  />
+                {columns.map((col, colIndex) => (
+                  <div className="category-column" key={colIndex}>
+                    {col.map((category) => (
+                      <CategoryCard
+                        key={category.id}
+                        category={category}
+                        isAdmin={isAdmin}
+                        isEditMode={isEditMode}
+                        onEditCategory={setEditingCategory}
+                        onDeleteCategory={setDeletingCategory}
+                        onAddResource={setAddingResourceTo}
+                        onEditResource={setEditingResource}
+                        onDeleteResource={setDeletingResource}
+                      />
+                    ))}
+                  </div>
                 ))}
                 {!filteredCategories.length ? (
                   <div className="dashboard-empty">

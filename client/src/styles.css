@@ -693,20 +693,17 @@ a {
 }
 
 .category-columns {
-  column-count: 1;
-  column-gap: 1.1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
 }
 
-@media (min-width: 640px) {
-  .category-columns {
-    column-count: 2;
-  }
-}
-
-@media (min-width: 1024px) {
-  .category-columns {
-    column-count: 3;
-  }
+.category-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 
 .dashboard-empty {
@@ -727,14 +724,11 @@ a {
 }
 
 .category-card {
-  break-inside: avoid;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1rem;
-  margin-bottom: 1.1rem;
-  display: inline-block;
   width: 100%;
 }
 

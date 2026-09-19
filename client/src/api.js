@@ -44,6 +44,7 @@ export const api = {
   me: () => request("/auth/me"),
   oidcConfig: () => request("/auth/oidc/config"),
   registrationStatus: () => request("/auth/registration-status"),
+  getPublicSettings: () => request("/settings"),
 
   listPages: () => request("/pages"),
   getDashboard: (pageId) => request(`/pages/${pageId}/dashboard`),

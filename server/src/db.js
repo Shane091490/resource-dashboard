@@ -23,12 +23,12 @@ export async function waitForDb(retries = 30, delayMs = 1000) {
 }
 
 export async function migrate() {
-  // Placeholder for future incremental schema changes (init.sql covers the initial schema).
+  await pool.query("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS dashboard_title TEXT NOT NULL DEFAULT 'Dashboard'");
 }
 
 export async function getAppSettings() {
-  const { rows } = await pool.query("SELECT allow_registration FROM app_settings WHERE id = 1");
-  return rows[0] || { allow_registration: true };
+  const { rows } = await pool.query("SELECT allow_registration, dashboard_title FROM app_settings WHERE id = 1");
+  return rows[0] || { allow_registration: true, dashboard_title: "Dashboard" };
 }
 
 export async function countUsers() {

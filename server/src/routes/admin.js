@@ -79,19 +79,31 @@ router.delete("/users/:id", async (req, res) => {
 
 router.get("/app-settings", async (req, res) => {
   const settings = await getAppSettings();
-  res.json({ allowRegistration: settings.allow_registration });
+  res.json({ allowRegistration: settings.allow_registration, dashboardTitle: settings.dashboard_title });
 });
 
 router.put("/app-settings", async (req, res) => {
-  const { allowRegistration } = req.body || {};
-  if (typeof allowRegistration !== "boolean") {
+  const { allowRegistration, dashboardTitle } = req.body || {};
+  if (allowRegistration === undefined && dashboardTitle === undefined) {
+    return res.status(400).json({ error: "Nothing to update" });
+  }
+  if (allowRegistration !== undefined && typeof allowRegistration !== "boolean") {
     return res.status(400).json({ error: "allowRegistration must be true or false" });
   }
+  if (dashboardTitle !== undefined && !String(dashboardTitle).trim()) {
+    return res.status(400).json({ error: "Dashboard title cannot be empty" });
+  }
+
+  const current = await getAppSettings();
+  const nextAllow = allowRegistration !== undefined ? allowRegistration : current.allow_registration;
+  const nextTitle = dashboardTitle !== undefined ? String(dashboardTitle).trim().slice(0, 60) : current.dashboard_title;
+
   await pool.query(
-    "INSERT INTO app_settings (id, allow_registration) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET allow_registration = EXCLUDED.allow_registration",
-    [allowRegistration]
+    `INSERT INTO app_settings (id, allow_registration, dashboard_title) VALUES (1, $1, $2)
+     ON CONFLICT (id) DO UPDATE SET allow_registration = EXCLUDED.allow_registration, dashboard_title = EXCLUDED.dashboard_title`,
+    [nextAllow, nextTitle]
   );
-  res.json({ allowRegistration });
+  res.json({ allowRegistration: nextAllow, dashboardTitle: nextTitle });
 });
 
 router.get("/oidc", (req, res) => {
