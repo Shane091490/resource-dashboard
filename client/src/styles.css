@@ -521,6 +521,30 @@ a {
   scrollbar-width: thin;
 }
 
+.page-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.page-nav-item:has(.page-nav-actions) {
+  background: var(--bg);
+  padding-right: 0.2rem;
+}
+
+.page-nav-actions {
+  display: inline-flex;
+  gap: 0.05rem;
+}
+
+.page-nav-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 0.78rem;
+}
+
 .page-nav-btn {
   flex-shrink: 0;
   border: 1px solid transparent;

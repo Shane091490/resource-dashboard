@@ -10,6 +10,8 @@ export default function Navbar({
   onNavigatePage,
   isAdmin,
   onAddPage,
+  onEditPage,
+  onDeletePage,
   search,
   onSearchChange,
   theme,
@@ -53,14 +55,39 @@ export default function Navbar({
       </div>
       <nav className="page-nav" aria-label="Dashboard pages">
         {pages.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={"page-nav-btn" + (p.id === currentPageId ? " active" : "")}
-            onClick={() => onNavigatePage(p)}
-          >
-            {p.name}
-          </button>
+          <div className="page-nav-item" key={p.id}>
+            <button
+              type="button"
+              className={"page-nav-btn" + (p.id === currentPageId ? " active" : "")}
+              onClick={() => onNavigatePage(p)}
+            >
+              {p.name}
+            </button>
+            {canEdit ? (
+              <span className="page-nav-actions">
+                <button
+                  type="button"
+                  className="icon-btn page-nav-icon"
+                  onClick={() => onEditPage(p)}
+                  aria-label={`Rename ${p.name}`}
+                  title="Rename page"
+                >
+                  ✎
+                </button>
+                {!p.is_home ? (
+                  <button
+                    type="button"
+                    className="icon-btn page-nav-icon"
+                    onClick={() => onDeletePage(p)}
+                    aria-label={`Delete ${p.name}`}
+                    title="Delete page"
+                  >
+                    🗑
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
+          </div>
         ))}
         {canEdit ? (
           <button type="button" className="page-nav-btn page-nav-add" onClick={onAddPage} title="Add a new page" aria-label="Add a new page">

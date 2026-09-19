@@ -96,6 +96,8 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   const [deletingCategory, setDeletingCategory] = useState(null);
 
   const [addingPage, setAddingPage] = useState(false);
+  const [editingPage, setEditingPage] = useState(null);
+  const [deletingPage, setDeletingPage] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [dashboardTitle, setDashboardTitle] = useState("Dashboard");
 
@@ -262,12 +264,37 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
     navigate(pathForPage(page));
   }
 
-  async function handleAddPage(name) {
-    const { page } = await api.createPage(name);
-    const nextPages = await loadPages();
-    setAddingPage(false);
-    const created = nextPages.find((p) => p.id === page.id) || page;
-    navigate(pathForPage(created));
+  async function handleSavePage(name) {
+    if (editingPage) {
+      const { page: updated } = await api.updatePage(editingPage.id, { name });
+      const nextPages = await loadPages();
+      setEditingPage(null);
+      if (currentPage?.id === updated.id) {
+        const fresh = nextPages.find((p) => p.id === updated.id) || updated;
+        navigate(pathForPage(fresh), true);
+      }
+    } else {
+      const { page } = await api.createPage(name);
+      const nextPages = await loadPages();
+      setAddingPage(false);
+      const created = nextPages.find((p) => p.id === page.id) || page;
+      navigate(pathForPage(created));
+    }
+  }
+
+  async function handleConfirmDeletePage() {
+    const page = deletingPage;
+    setDeletingPage(null);
+    try {
+      await api.deletePage(page.id);
+      const nextPages = await loadPages();
+      if (currentPage?.id === page.id) {
+        const home = nextPages.find((p) => p.is_home) || nextPages[0];
+        if (home) navigate(pathForPage(home), true);
+      }
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   async function handleSaveCategory(data) {
@@ -342,6 +369,8 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         onNavigatePage={handleNavigatePage}
         isAdmin={isAdmin}
         onAddPage={() => setAddingPage(true)}
+        onEditPage={setEditingPage}
+        onDeletePage={setDeletingPage}
         search={search}
         onSearchChange={setSearch}
         theme={theme}
@@ -451,7 +480,18 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         />
       ) : null}
 
-      {addingPage ? <PageModal onSave={handleAddPage} onCancel={() => setAddingPage(false)} /> : null}
+      {addingPage ? <PageModal onSave={handleSavePage} onCancel={() => setAddingPage(false)} /> : null}
+      {editingPage ? <PageModal page={editingPage} onSave={handleSavePage} onCancel={() => setEditingPage(null)} /> : null}
+      {deletingPage ? (
+        <ConfirmDialog
+          title="Delete page"
+          message={`Delete "${deletingPage.name}" and all categories and resources on it? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleConfirmDeletePage}
+          onCancel={() => setDeletingPage(null)}
+        />
+      ) : null}
     </div>
   );
 }
