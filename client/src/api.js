@@ -54,6 +54,7 @@ export const api = {
   createCategory: (data) => request("/categories", { method: "POST", body: data }),
   updateCategory: (id, data) => request(`/categories/${id}`, { method: "PUT", body: data }),
   deleteCategory: (id) => request(`/categories/${id}`, { method: "DELETE" }),
+  reorderCategories: (pageId, order) => request("/categories/reorder", { method: "PUT", body: { page_id: pageId, order } }),
 
   createResource: (data) => request("/resources", { method: "POST", body: data }),
   updateResource: (id, data) => request(`/resources/${id}`, { method: "PUT", body: data }),

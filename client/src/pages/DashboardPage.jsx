@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, closestCorners } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import { api } from "../api.js";
+import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { api, imageUrl } from "../api.js";
 import Navbar from "../components/Navbar.jsx";
 import CategoryCard from "../components/CategoryCard.jsx";
 import ResourceCard from "../components/ResourceCard.jsx";
@@ -20,6 +20,18 @@ function locateContainer(categories, sortableId) {
   for (const cat of categories) {
     if (cat.resources.some((r) => `resource-${r.id}` === sortableId)) return cat.id;
   }
+  return null;
+}
+
+// Resolves any id that can appear as `over` while dragging a category card - the card's own
+// sortable id, its nested resource drop-zone id, or (since collision detection compares against
+// every registered droppable, nested resource rows included) an individual resource row's id -
+// back to the plain numeric id of the category it belongs to.
+function resolveCategoryId(categories, sortableId) {
+  const id = String(sortableId);
+  if (id.startsWith("categorycard-")) return Number(id.slice("categorycard-".length));
+  if (id.startsWith("category-")) return Number(id.slice("category-".length));
+  if (id.startsWith("resource-")) return locateContainer(categories, id);
   return null;
 }
 
@@ -60,8 +72,10 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   const [deletingCategory, setDeletingCategory] = useState(null);
 
   const [addingPage, setAddingPage] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const isAdmin = !!user.is_admin;
+  const canEdit = isAdmin && isEditMode;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -119,12 +133,14 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   function handleDragStart(event) {
     setActiveDragId(event.active.id);
-    dragStartContainerRef.current = locateContainer(categories, event.active.id);
+    if (event.active.data.current?.type === "resource") {
+      dragStartContainerRef.current = locateContainer(categories, event.active.id);
+    }
   }
 
   function handleDragOver(event) {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.data.current?.type !== "resource") return;
     setCategories((prev) => {
       const fromId = locateContainer(prev, active.id);
       const toId = locateContainer(prev, over.id);
@@ -135,10 +151,27 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   function handleDragEnd(event) {
     const { active, over } = event;
+    const kind = active.data.current?.type;
     const startContainerId = dragStartContainerRef.current;
     setActiveDragId(null);
     dragStartContainerRef.current = null;
     if (!over) return;
+
+    if (kind === "category") {
+      const overCategoryId = resolveCategoryId(categories, over.id);
+      const activeCategoryId = resolveCategoryId(categories, active.id);
+      if (!overCategoryId || overCategoryId === activeCategoryId) return;
+
+      setCategories((prev) => {
+        const oldIndex = prev.findIndex((c) => c.id === activeCategoryId);
+        const newIndex = prev.findIndex((c) => c.id === overCategoryId);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        const reordered = arrayMove(prev, oldIndex, newIndex);
+        api.reorderCategories(currentPage.id, reordered.map((c) => c.id)).catch((err) => showToast(err.message));
+        return reordered;
+      });
+      return;
+    }
 
     setCategories((prev) => {
       const containerId = locateContainer(prev, active.id);
@@ -163,6 +196,14 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
           api.reorderResources(startContainerId, sourceCat.resources.map((r) => r.id)).catch((err) => showToast(err.message));
         }
       }
+      return next;
+    });
+  }
+
+  function handleToggleEditMode() {
+    setIsEditMode((prev) => {
+      const next = !prev;
+      if (prev) showToast("Changes saved.");
       return next;
     });
   }
@@ -231,12 +272,17 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   }
 
   const activeResource = useMemo(() => {
-    if (!activeDragId || !categories) return null;
+    if (!activeDragId || !categories || !String(activeDragId).startsWith("resource-")) return null;
     for (const cat of categories) {
       const found = cat.resources.find((r) => `resource-${r.id}` === activeDragId);
       if (found) return found;
     }
     return null;
+  }, [activeDragId, categories]);
+
+  const activeCategory = useMemo(() => {
+    if (!activeDragId || !categories || !String(activeDragId).startsWith("categorycard-")) return null;
+    return categories.find((c) => `categorycard-${c.id}` === activeDragId) || null;
   }, [activeDragId, categories]);
 
   return (
@@ -252,6 +298,8 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         theme={theme}
         onToggleTheme={onToggleTheme}
         user={user}
+        isEditMode={isEditMode}
+        onToggleEditMode={isAdmin ? handleToggleEditMode : undefined}
         onOpenSettings={() => navigate("/settings")}
         onLogout={onLogout}
       />
@@ -263,34 +311,57 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-            <div className="category-columns">
-              {filteredCategories.map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  category={category}
-                  isAdmin={isAdmin}
-                  onEditCategory={setEditingCategory}
-                  onDeleteCategory={setDeletingCategory}
-                  onAddResource={setAddingResourceTo}
-                  onEditResource={setEditingResource}
-                  onDeleteResource={setDeletingResource}
-                />
-              ))}
-              {!filteredCategories.length ? (
-                <div className="dashboard-empty">
-                  {search ? "No resources match your search." : isAdmin ? "No categories yet. Add one to get started." : "Nothing here yet."}
+            <SortableContext items={filteredCategories.map((c) => `categorycard-${c.id}`)} strategy={rectSortingStrategy}>
+              <div className="category-columns">
+                {filteredCategories.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    isAdmin={isAdmin}
+                    isEditMode={isEditMode}
+                    onEditCategory={setEditingCategory}
+                    onDeleteCategory={setDeletingCategory}
+                    onAddResource={setAddingResourceTo}
+                    onEditResource={setEditingResource}
+                    onDeleteResource={setDeletingResource}
+                  />
+                ))}
+                {!filteredCategories.length ? (
+                  <div className="dashboard-empty">
+                    {search
+                      ? "No resources match your search."
+                      : canEdit
+                      ? "No categories yet. Tap the + button to add one."
+                      : isAdmin
+                      ? "No categories yet. Click Edit dashboard in the user menu to add one."
+                      : "Nothing here yet."}
+                  </div>
+                ) : null}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeResource ? <ResourceCard resource={activeResource} isAdmin={isAdmin} isEditMode={isEditMode} onEdit={() => {}} onDelete={() => {}} /> : null}
+              {activeCategory ? (
+                <div className="category-card category-drag-preview">
+                  <div className="category-header">
+                    <span className="category-icon">
+                      {imageUrl(activeCategory.image) ? (
+                        <img src={imageUrl(activeCategory.image)} alt="" />
+                      ) : (
+                        <span className="category-icon-fallback">{activeCategory.name[0]?.toUpperCase()}</span>
+                      )}
+                    </span>
+                    <h2 className="category-name">{activeCategory.name}</h2>
+                  </div>
                 </div>
               ) : null}
-            </div>
-            <DragOverlay>
-              {activeResource ? <ResourceCard resource={activeResource} isAdmin={isAdmin} onEdit={() => {}} onDelete={() => {}} /> : null}
             </DragOverlay>
           </DndContext>
         )}
 
-        {isAdmin && categories !== null ? (
-          <button type="button" className="btn btn-add-category" onClick={() => setAddingCategory(true)}>
-            + Add category
+        {canEdit && categories !== null ? (
+          <button type="button" className="fab-add-category" onClick={() => setAddingCategory(true)} aria-label="Add category" title="Add category">
+            +
           </button>
         ) : null}
       </main>

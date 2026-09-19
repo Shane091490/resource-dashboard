@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, downloadExport } from "../api.js";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import ToggleSwitch from "../components/ToggleSwitch.jsx";
 
 export default function SettingsPage({ navigate, showToast }) {
   const [allowRegistration, setAllowRegistration] = useState(true);
@@ -74,7 +75,7 @@ export default function SettingsPage({ navigate, showToast }) {
               <strong>Allow new user registration</strong>
               <div className="settings-hint">When off, only an admin can create new accounts.</div>
             </span>
-            <input type="checkbox" checked={allowRegistration} onChange={toggleRegistration} disabled={!loaded || saving} />
+            <ToggleSwitch checked={allowRegistration} onChange={toggleRegistration} disabled={!loaded || saving} ariaLabel="Allow new user registration" />
           </label>
         </section>
 

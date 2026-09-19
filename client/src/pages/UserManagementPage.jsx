@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import ToggleSwitch from "../components/ToggleSwitch.jsx";
 
 const emptyForm = { email: "", first_name: "", last_name: "", password: "", is_admin: false };
 
@@ -111,7 +112,7 @@ export default function UserManagementPage({ currentUser, navigate, showToast })
               </label>
               <label className="settings-toggle-row">
                 <span>Admin</span>
-                <input type="checkbox" checked={form.is_admin} onChange={(e) => setForm({ ...form, is_admin: e.target.checked })} />
+                <ToggleSwitch checked={form.is_admin} onChange={(val) => setForm({ ...form, is_admin: val })} ariaLabel="Admin" />
               </label>
               {error ? <div className="field-error">{error}</div> : null}
               <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -138,7 +139,7 @@ export default function UserManagementPage({ currentUser, navigate, showToast })
                   <div className="user-row-actions">
                     <label className="settings-toggle-row compact">
                       <span>Admin</span>
-                      <input type="checkbox" checked={u.is_admin} disabled={u.id === currentUser.id} onChange={() => toggleRole(u)} />
+                      <ToggleSwitch checked={u.is_admin} disabled={u.id === currentUser.id} onChange={() => toggleRole(u)} ariaLabel={`Admin role for ${u.email}`} />
                     </label>
                     {!u.is_sso ? (
                       <button type="button" className="btn" onClick={() => setResetTarget(u)}>

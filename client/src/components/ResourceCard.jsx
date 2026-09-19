@@ -2,10 +2,12 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { imageUrl } from "../api.js";
 
-export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
+export default function ResourceCard({ resource, isAdmin, isEditMode, onEdit, onDelete }) {
+  const canEdit = isAdmin && isEditMode;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `resource-${resource.id}`,
     data: { type: "resource", resource },
+    disabled: !canEdit,
   });
 
   const style = {
@@ -18,7 +20,7 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
 
   return (
     <div ref={setNodeRef} style={style} className={"resource-card" + (isDragging ? " dragging" : "")}>
-      {isAdmin ? (
+      {canEdit ? (
         <button type="button" className="drag-handle" aria-label="Drag to reorder" title="Drag to reorder" {...attributes} {...listeners}>
           ⠿
         </button>
@@ -41,7 +43,7 @@ export default function ResourceCard({ resource, isAdmin, onEdit, onDelete }) {
           ) : null}
         </span>
       </a>
-      {isAdmin ? (
+      {canEdit ? (
         <div className="resource-actions">
           <button type="button" className="icon-btn" onClick={() => onEdit(resource)} aria-label={`Edit ${resource.name}`} title="Edit">
             ✎

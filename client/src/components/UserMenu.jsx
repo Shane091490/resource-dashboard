@@ -6,7 +6,7 @@ function initials(user) {
   return (a + b).toUpperCase();
 }
 
-export default function UserMenu({ user, onOpenSettings, onLogout }) {
+export default function UserMenu({ user, isEditMode, onToggleEditMode, onOpenSettings, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -41,6 +41,19 @@ export default function UserMenu({ user, onOpenSettings, onLogout }) {
             <div className="user-menu-fullname">{displayName}</div>
             <div className="user-menu-email">{user.email}</div>
           </div>
+          {user.is_admin && onToggleEditMode ? (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onToggleEditMode();
+              }}
+            >
+              {isEditMode ? "💾 Save & exit edit mode" : "✏️ Edit dashboard"}
+            </button>
+          ) : null}
           {user.is_admin ? (
             <button
               type="button"

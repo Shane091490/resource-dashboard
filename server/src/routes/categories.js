@@ -27,6 +27,35 @@ router.post("/", async (req, res) => {
   res.status(201).json({ category: { ...rows[0], resources: [] } });
 });
 
+// Registered before "/:id" so the literal path "/reorder" isn't swallowed by it (see resources.js).
+router.put("/reorder", async (req, res) => {
+  const { page_id, order } = req.body || {};
+  const pageId = Number(page_id);
+  if (!pageId || !Array.isArray(order) || !order.length) {
+    return res.status(400).json({ error: "page_id and a non-empty order array are required" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (let i = 0; i < order.length; i++) {
+      await client.query("UPDATE categories SET position = $1 WHERE id = $2 AND page_id = $3", [
+        i,
+        Number(order[i]),
+        pageId,
+      ]);
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.status(204).end();
+});
+
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
   const { name, image } = req.body || {};

@@ -13,6 +13,8 @@ export default function Navbar({
   theme,
   onToggleTheme,
   user,
+  isEditMode,
+  onToggleEditMode,
   onOpenSettings,
   onLogout,
 }) {
@@ -28,7 +30,7 @@ export default function Navbar({
         <div className="navbar-right">
           <SearchBox value={search} onChange={onSearchChange} />
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          <UserMenu user={user} onOpenSettings={onOpenSettings} onLogout={onLogout} />
+          <UserMenu user={user} isEditMode={isEditMode} onToggleEditMode={onToggleEditMode} onOpenSettings={onOpenSettings} onLogout={onLogout} />
         </div>
       </div>
       <nav className="page-nav" aria-label="Dashboard pages">

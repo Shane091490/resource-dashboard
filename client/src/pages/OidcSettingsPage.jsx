@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import ToggleSwitch from "../components/ToggleSwitch.jsx";
 
 const empty = {
   enabled: false,
@@ -86,7 +87,7 @@ export default function OidcSettingsPage({ navigate, showToast }) {
                   <strong>Enable SSO</strong>
                   <div className="settings-hint">{connected ? "Currently connected." : form.enabled ? "Enabled, but not yet connected." : "Disabled."}</div>
                 </span>
-                <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
+                <ToggleSwitch checked={form.enabled} onChange={(val) => setForm({ ...form, enabled: val })} ariaLabel="Enable SSO" />
               </label>
 
               <label className="field">
