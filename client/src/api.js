@@ -64,6 +64,7 @@ export const api = {
     request("/resources/reorder", { method: "PUT", body: { category_id: categoryId, order } }),
 
   uploadImage: (file) => uploadImage(file),
+  lookupIcon: (name) => request(`/icons/lookup?name=${encodeURIComponent(name)}`),
 
   listUsers: () => request("/admin/users"),
   createUser: (data) => request("/admin/users", { method: "POST", body: data }),

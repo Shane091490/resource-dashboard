@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 import ImageField from "./ImageField.jsx";
 
 export default function ResourceModal({ resource, categoryName, onSave, onCancel }) {
@@ -7,8 +8,36 @@ export default function ResourceModal({ resource, categoryName, onSave, onCancel
   const [url, setUrl] = useState(resource?.url || "https://");
   const [tagsText, setTagsText] = useState((resource?.tags || []).join(", "));
   const [image, setImage] = useState(resource?.image || null);
+  const [autoFilledImage, setAutoFilledImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Auto-suggest an icon from dashboardicons.com as the name is typed - but only while the image
+  // field is still empty. Once the admin sets an image themselves (upload, URL, or removal), this
+  // stops touching it, so it never clobbers a deliberate choice - including on an existing resource,
+  // which already has an image and so is never eligible in the first place.
+  useEffect(() => {
+    if (image) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const handle = setTimeout(() => {
+      api
+        .lookupIcon(trimmed)
+        .then(({ url }) => {
+          if (url) {
+            setImage(url);
+            setAutoFilledImage(true);
+          }
+        })
+        .catch(() => {});
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [name, image]);
+
+  function handleImageChange(value) {
+    setAutoFilledImage(false);
+    setImage(value);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -50,7 +79,10 @@ export default function ResourceModal({ resource, categoryName, onSave, onCancel
           </label>
           <label className="field">
             <span>Image</span>
-            <ImageField value={image} onChange={setImage} />
+            <ImageField value={image} onChange={handleImageChange} />
+            {autoFilledImage ? (
+              <span className="field-hint">Suggested from dashboardicons.com - replace or remove if not right.</span>
+            ) : null}
           </label>
           {error ? <div className="field-error">{error}</div> : null}
           <div className="modal-actions">
