@@ -38,8 +38,12 @@ router.put("/auto-sync", async (req, res) => {
 });
 
 router.post("/import", async (req, res) => {
-  const result = await runPangolinImport();
-  res.json(result);
+  try {
+    const result = await runPangolinImport();
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 export default router;

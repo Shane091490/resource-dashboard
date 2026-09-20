@@ -58,6 +58,11 @@ async function pangolinFetch(baseUrl, apiKey, path) {
     throw new Error(`Could not reach the Pangolin API: ${err.message}`);
   }
   const body = await res.json().catch(() => null);
+  if (body === null) {
+    throw new Error(
+      `Pangolin didn't return JSON from ${path} (status ${res.status}). Check that the base URL points at the Integration API, not the main Pangolin dashboard.`
+    );
+  }
   if (!res.ok || !body?.success) {
     throw new Error(body?.message || `Pangolin API request failed (${res.status})`);
   }
