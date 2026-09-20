@@ -1,47 +1,47 @@
 # Resource Dashboard
 
-A mobile-friendly, self-hosted resource launcher/dashboard. Organize links to your services into
-categories on one or more pages, search by name or tag, and manage everything with admin-only
-edit/delete controls and drag-and-drop reordering.
-
-## Stack
-
-- **nginx** — serves the built React app and reverse-proxies `/api` and `/uploads` to the app container.
-- **app** — Node.js/Express API (JWT cookie auth, OIDC via `openid-client`, PostgreSQL via `pg`).
-- **db** — PostgreSQL 16.
-
-## Running it
-
-```sh
-cp .env.example .env   # edit POSTGRES_PASSWORD / JWT_SECRET / WEB_PORT as needed
-docker compose up -d --build
-```
-
-The app is served on `http://<host>:${WEB_PORT:-8083}`.
-
-## First run
-
-The **first account you register becomes the admin**, and registration is automatically closed
-right after (toggle it back on from Settings → General if you want open sign-ups). A default
-"Home" page is seeded on first boot.
+A self-hosted dashboard for organizing links to all the apps and services you run. Add resources with a name, description, tags and an icon, group them into categories, and search across everything from one screen.
 
 ## Features
 
-- Pages (admin-created, shown as buttons in the top nav) → category cards (vertical lists,
-  arranged in a responsive 3/2/1-column layout) → resource cards, each linking out to a service.
-- Search box filters resources by name or tag across the current page.
-- Drag-and-drop resource cards within or between category cards (admin only).
-- Light/dark theme toggle, persisted per browser.
-- Settings page (Settings button lives in the user menu, top right): registration on/off,
-  JSON export/import (with a confirm-before-overwrite step), and links to User management and
-  OIDC configuration.
-- OIDC single sign-on, compatible with any standards-compliant provider (Keycloak included). Set
-  your provider's redirect URI to `https://<your-domain>/api/auth/oidc/callback`.
-- Multi-user accounts (first/last name + email as the login username), role management, and
-  password resets, all under Settings → Users.
+- Category cards holding your resource links, arranged on a responsive dashboard
+- Multiple pages, each with its own button in the top navigation
+- Search box that filters resources by name or tag
+- Drag and drop to reorder resources and move them between categories
+- Light and dark themes
+- Edit mode - toggle it on from the user menu to add, edit, delete and rearrange things, then save when you're done
+- Multi-user accounts with admin and regular user roles
+- The first account created automatically becomes the admin
+- User registration can be switched on or off from Settings
+- Single sign-on login through any OIDC provider, including Keycloak
+- Export everything to a JSON file and import it back in later, with a confirmation step before anything gets overwritten
+- Icons for new resources are suggested automatically based on the name you type
 
-## Data & images
+## What you need
 
-Category/resource images can be uploaded (stored in the `dashboard_uploads` volume, served via
-nginx at `/uploads/`) or linked by external URL. Exported JSON embeds uploaded images as base64,
-so an export is fully self-contained and portable to a fresh instance.
+- Docker and Docker Compose installed on the machine you're deploying to
+
+## Deploying it
+
+1. Copy the example environment file:
+   ```
+   cp .env.example .env
+   ```
+2. Open `.env` and set a database password and a JWT secret (any random string works for both), and pick the port you want the dashboard to run on.
+3. Start everything up:
+   ```
+   docker compose up -d --build
+   ```
+4. Open a browser to `http://<your-server-address>:<port>` (port 8083 by default).
+5. Register an account. The first one you create automatically becomes the admin, and registration closes itself right after - you can turn it back on from Settings if you want other people to be able to sign up.
+
+## Turning on single sign-on
+
+Log in as admin, go to Settings > OIDC, and enter your provider's issuer URL, client ID and client secret. In your provider's settings, set the redirect URI to:
+```
+https://your-domain.com/api/auth/oidc/callback
+```
+
+## Backing up your data
+
+The Settings page has an Export button that downloads all your categories, resources and uploaded images as a single JSON file. Use Import on a new instance to load that file back in - you'll get a confirmation prompt before it replaces anything.

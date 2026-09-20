@@ -1,8 +1,13 @@
 import crypto from "crypto";
-import { Issuer, generators } from "openid-client";
+import { Issuer, generators, custom } from "openid-client";
 import { pool } from "./db.js";
 
 export { generators };
+
+// openid-client defaults to a 3500ms timeout for discovery/token/userinfo requests, which is
+// too tight for a provider reached over the public internet (e.g. through a reverse tunnel)
+// rather than a direct LAN hop.
+custom.setHttpOptionsDefaults({ timeout: 15000 });
 
 const ENC_ALGO = "aes-256-gcm";
 

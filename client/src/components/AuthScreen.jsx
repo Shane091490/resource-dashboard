@@ -53,17 +53,6 @@ export default function AuthScreen({ mode, navigate, onAuthed }) {
         <h1>🚀 Resource Dashboard</h1>
         <p className="sub">{mode === "login" ? "Welcome back." : "Create an account to get started."}</p>
 
-        {oidc && (
-          <>
-            <a className="btn btn-block" href="/api/auth/oidc/login">
-              Continue with {oidc.providerName}
-            </a>
-            <div className="auth-divider">
-              <span>or</span>
-            </div>
-          </>
-        )}
-
         <form onSubmit={submit}>
           {mode === "register" && (
             <div className="field-row">
@@ -105,6 +94,18 @@ export default function AuthScreen({ mode, navigate, onAuthed }) {
             {busy ? "Please wait…" : mode === "login" ? "Log in" : "Register"}
           </button>
         </form>
+
+        {oidc && (
+          <>
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+            <a className="btn btn-block" href="/api/auth/oidc/login">
+              Continue with {oidc.providerName}
+            </a>
+          </>
+        )}
+
         {(allowRegistration || mode === "register") && (
           <div className="auth-toggle">
             {mode === "login" ? (
