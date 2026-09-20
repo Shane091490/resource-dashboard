@@ -3,11 +3,10 @@
 A self-hosted dashboard for organizing links to all the apps and services you run. Add resources with a name, description, tags and an icon, group them into categories, and search across everything from one screen.
 
 ## Screenshot
+<img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/a4dfb016-9d03-4ffa-ab52-f27d5f4d292d" />
 <img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/e40db467-26d8-4b0d-be37-490ca06e4345" />
 <img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/c2fbf794-2c2d-4df7-b089-5587d861e3b1" />
-<img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/a4dfb016-9d03-4ffa-ab52-f27d5f4d292d" />
-
-
+<img width="1888" height="863" alt="image" src="https://github.com/user-attachments/assets/dd765767-c2c3-4eb4-ad82-2820dc0b80dc" />
 
 ## Features
 
