@@ -2,12 +2,19 @@
 
 A self-hosted dashboard for organizing links to all the apps and services you run. Add resources with a name, description, tags and an icon, group them into categories, and search across everything from one screen.
 
+## Screenshot
+<img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/e40db467-26d8-4b0d-be37-490ca06e4345" />
+<img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/c2fbf794-2c2d-4df7-b089-5587d861e3b1" />
+<img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/a4dfb016-9d03-4ffa-ab52-f27d5f4d292d" />
+
+
+
 ## Features
 
 - Category cards holding your resource links, arranged on a responsive dashboard
 - Multiple pages, each with its own button in the top navigation
 - Search box that filters resources by name or tag
-- Drag and drop to reorder resources and move them between categories
+- Drag and drop to reorder categories/resources
 - Light and dark themes
 - Edit mode - toggle it on from the user menu to add, edit, delete and rearrange things, then save when you're done
 - Multi-user accounts with admin and regular user roles
@@ -34,7 +41,7 @@ A self-hosted dashboard for organizing links to all the apps and services you ru
    docker compose up -d --build
    ```
 4. Open a browser to `http://<your-server-address>:<port>` (port 8083 by default).
-5. Register an account. The first one you create automatically becomes the admin, and registration closes itself right after - you can turn it back on from Settings if you want other people to be able to sign up.
+5. Register an account. The first one you create automatically becomes the admin, and registration closes itself right after - you can turn it back on from Settings if you want other people to be able to register an account.
 
 ## Turning on single sign-on
 
