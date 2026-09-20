@@ -36,7 +36,7 @@ router.post("/register", async (req, res) => {
     let rows;
     try {
       ({ rows } = await client.query(
-        "INSERT INTO users (email, first_name, last_name, password_hash, is_admin) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name, is_admin",
+        "INSERT INTO users (email, first_name, last_name, password_hash, is_admin) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name, is_admin, theme",
         [email, firstName, lastName, passwordHash, isFirstUser]
       ));
     } catch (err) {
@@ -68,7 +68,7 @@ router.post("/login", async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
 
   const { rows } = await pool.query(
-    "SELECT id, email, first_name, last_name, password_hash, is_admin FROM users WHERE email = $1",
+    "SELECT id, email, first_name, last_name, password_hash, is_admin, theme FROM users WHERE email = $1",
     [String(email).trim().toLowerCase()]
   );
   const user = rows[0];
@@ -82,7 +82,14 @@ router.post("/login", async (req, res) => {
 
   setAuthCookie(res, user);
   res.json({
-    user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, is_admin: user.is_admin },
+    user: {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      is_admin: user.is_admin,
+      theme: user.theme,
+    },
   });
 });
 
@@ -93,6 +100,15 @@ router.post("/logout", (req, res) => {
 
 router.get("/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+router.put("/theme", requireAuth, async (req, res) => {
+  const { theme } = req.body || {};
+  if (theme !== "light" && theme !== "dark") {
+    return res.status(400).json({ error: 'theme must be "light" or "dark"' });
+  }
+  await pool.query("UPDATE users SET theme = $1 WHERE id = $2", [theme, req.user.id]);
+  res.json({ theme });
 });
 
 export default router;

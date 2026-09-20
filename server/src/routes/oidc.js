@@ -62,7 +62,7 @@ router.get("/callback", async (req, res) => {
     const claims = tokenSet.claims();
 
     const { rows: existingRows } = await pool.query(
-      "SELECT id, email, first_name, last_name, is_admin FROM users WHERE oidc_sub = $1",
+      "SELECT id, email, first_name, last_name, is_admin, theme FROM users WHERE oidc_sub = $1",
       [claims.sub]
     );
     let user = existingRows[0];
@@ -80,7 +80,7 @@ router.get("/callback", async (req, res) => {
 
       try {
         const { rows: inserted } = await pool.query(
-          "INSERT INTO users (email, first_name, last_name, password_hash, is_admin, oidc_sub, oidc_issuer) VALUES ($1, $2, $3, NULL, $4, $5, $6) RETURNING id, email, first_name, last_name, is_admin",
+          "INSERT INTO users (email, first_name, last_name, password_hash, is_admin, oidc_sub, oidc_issuer) VALUES ($1, $2, $3, NULL, $4, $5, $6) RETURNING id, email, first_name, last_name, is_admin, theme",
           [email, firstName, lastName, isAdmin, claims.sub, client.issuer.issuer]
         );
         user = inserted[0];

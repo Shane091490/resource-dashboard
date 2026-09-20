@@ -53,7 +53,12 @@ export default function App() {
   useEffect(() => {
     api
       .me()
-      .then(({ user }) => setUser(user))
+      .then(({ user }) => {
+        setUser(user);
+        // The account's saved theme is the source of truth once we know it - it follows the
+        // user across browsers/devices, unlike the localStorage value used before login.
+        if (user.theme === "light" || user.theme === "dark") setTheme(user.theme);
+      })
       .catch(() => setUser(null));
   }, []);
 
@@ -76,6 +81,19 @@ export default function App() {
     navigate("/login", true);
   }
 
+  function handleAuthed(authedUser) {
+    setUser(authedUser);
+    if (authedUser.theme === "light" || authedUser.theme === "dark") setTheme(authedUser.theme);
+  }
+
+  function handleToggleTheme() {
+    setTheme((t) => {
+      const next = t === "light" ? "dark" : "light";
+      if (user) api.setTheme(next).catch(() => {});
+      return next;
+    });
+  }
+
   if (user === undefined) {
     return (
       <div className="page-loading">
@@ -87,7 +105,7 @@ export default function App() {
   if (!user) {
     return (
       <>
-        <AuthScreen mode={route.view === "register" ? "register" : "login"} navigate={navigate} onAuthed={setUser} />
+        <AuthScreen mode={route.view === "register" ? "register" : "login"} navigate={navigate} onAuthed={handleAuthed} />
         {toast ? <Toast message={toast} /> : null}
       </>
     );
@@ -107,7 +125,7 @@ export default function App() {
           slug={route.slug}
           navigate={navigate}
           theme={theme}
-          onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+          onToggleTheme={handleToggleTheme}
           onLogout={handleLogout}
           showToast={showToast}
         />
