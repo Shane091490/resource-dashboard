@@ -1,6 +1,7 @@
 import { pool } from "./db.js";
 import { encryptSecret, decryptSecret } from "./crypto.js";
-import { lookupIcon } from "./icons.js";
+import { lookupIcon, lookupCategory } from "./icons.js";
+import { guessHomelabCategory } from "./homelabCategories.js";
 
 const SECRET_PURPOSE = "resource-dashboard-pangolin-secret";
 const CATEGORY_NAME = "General";
@@ -98,15 +99,15 @@ async function fetchAllPublicResources(baseUrl, apiKey, orgId) {
   return all;
 }
 
-async function ensureGeneralCategory(client) {
-  const { rows: homeRows } = await client.query("SELECT id FROM pages WHERE is_home = TRUE LIMIT 1");
-  const pageId = homeRows[0]?.id;
+async function getHomePageId(client) {
+  const { rows } = await client.query("SELECT id FROM pages WHERE is_home = TRUE LIMIT 1");
+  const pageId = rows[0]?.id;
   if (!pageId) throw new Error("No home page exists to import into");
+  return pageId;
+}
 
-  const { rows: catRows } = await client.query("SELECT id FROM categories WHERE page_id = $1 AND name = $2 LIMIT 1", [
-    pageId,
-    CATEGORY_NAME,
-  ]);
+async function ensureCategory(client, pageId, name) {
+  const { rows: catRows } = await client.query("SELECT id FROM categories WHERE page_id = $1 AND name = $2 LIMIT 1", [pageId, name]);
   if (catRows[0]) return catRows[0].id;
 
   const { rows: posRows } = await client.query("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM categories WHERE page_id = $1", [
@@ -114,7 +115,7 @@ async function ensureGeneralCategory(client) {
   ]);
   const { rows } = await client.query("INSERT INTO categories (page_id, name, position) VALUES ($1, $2, $3) RETURNING id", [
     pageId,
-    CATEGORY_NAME,
+    name,
     posRows[0].next,
   ]);
   return rows[0].id;
@@ -134,15 +135,36 @@ export async function runPangolinImport() {
   let skipped = 0;
   try {
     await client.query("BEGIN");
-    const categoryId = await ensureGeneralCategory(client);
-    const { rows: existing } = await client.query("SELECT url FROM resources WHERE category_id = $1", [categoryId]);
+    const pageId = await getHomePageId(client);
+
+    const { rows: existing } = await client.query(
+      "SELECT r.url FROM resources r JOIN categories c ON c.id = r.category_id WHERE c.page_id = $1",
+      [pageId]
+    );
     const existingUrls = new Set(existing.map((r) => r.url));
 
-    const { rows: posRows } = await client.query(
-      "SELECT COALESCE(MAX(position), -1) + 1 AS next FROM resources WHERE category_id = $1",
-      [categoryId]
-    );
-    let nextPosition = posRows[0].next;
+    const categoryIdByName = new Map();
+    const nextPositionByCategory = new Map();
+
+    async function categoryIdFor(name) {
+      if (categoryIdByName.has(name)) return categoryIdByName.get(name);
+      const id = await ensureCategory(client, pageId, name);
+      categoryIdByName.set(name, id);
+      return id;
+    }
+
+    async function nextPositionFor(categoryId) {
+      if (nextPositionByCategory.has(categoryId)) {
+        const next = nextPositionByCategory.get(categoryId);
+        nextPositionByCategory.set(categoryId, next + 1);
+        return next;
+      }
+      const { rows } = await client.query("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM resources WHERE category_id = $1", [
+        categoryId,
+      ]);
+      nextPositionByCategory.set(categoryId, rows[0].next + 1);
+      return rows[0].next;
+    }
 
     for (const r of resources) {
       if (!r.fullDomain) {
@@ -154,14 +176,20 @@ export async function runPangolinImport() {
         skipped += 1;
         continue;
       }
-      const image = await lookupIcon(r.name).catch(() => null);
+      const [image, dashboardIconsCategory] = await Promise.all([
+        lookupIcon(r.name).catch(() => null),
+        lookupCategory(r.name).catch(() => null),
+      ]);
+      const category = guessHomelabCategory(r.name) || dashboardIconsCategory || CATEGORY_NAME;
+      const categoryId = await categoryIdFor(category);
+      const position = await nextPositionFor(categoryId);
+
       await client.query(
         `INSERT INTO resources (category_id, name, description, image, url, tags, position)
          VALUES ($1, $2, '', $3, $4, $5, $6)`,
-        [categoryId, r.name, image, url, ["pangolin"], nextPosition]
+        [categoryId, r.name, image, url, ["pangolin"], position]
       );
       existingUrls.add(url);
-      nextPosition += 1;
       imported += 1;
     }
 

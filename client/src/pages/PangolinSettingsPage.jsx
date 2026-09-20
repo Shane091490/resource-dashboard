@@ -101,8 +101,9 @@ export default function PangolinSettingsPage({ navigate, showToast }) {
             </span>
           </div>
           <p className="settings-hint">
-            Connect to your Pangolin Integration API to pull in every public resource as a resource card, grouped under a "General"
-            category on your home page.
+            Connect to your Pangolin Integration API to pull in every public resource as a resource card on your home page. Each one is
+            sorted into a category guessed from its name (e.g. "Media Servers", "Networking Tools") - anything unrecognized lands in a
+            "General" category instead.
           </p>
 
           {!loaded ? (
