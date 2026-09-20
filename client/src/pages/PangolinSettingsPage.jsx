@@ -88,6 +88,18 @@ export default function PangolinSettingsPage({ navigate, showToast }) {
 
       <main className="settings-main">
         <section className="settings-section">
+          <div className="settings-warning" role="note">
+            <span aria-hidden="true">⚠️</span>
+            <span>
+              Pangolin's Integration API is disabled by default and isn't exposed alongside the main Pangolin dashboard - it has to be
+              turned on in your Pangolin server's config and given its own reachable route (e.g. through a reverse proxy) before this
+              page can connect to it. See{" "}
+              <a href="https://docs.pangolin.net/manage/integration-api" target="_blank" rel="noopener noreferrer">
+                Pangolin's Integration API documentation
+              </a>{" "}
+              for how to enable and expose it.
+            </span>
+          </div>
           <p className="settings-hint">
             Connect to your Pangolin Integration API to pull in every public resource as a resource card, grouped under a "General"
             category on your home page.
