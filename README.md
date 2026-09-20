@@ -16,7 +16,7 @@ A self-hosted dashboard for organizing links to all the apps and services you ru
 - Multiple pages, each with its own button in the top navigation
 - Search box that filters resources by name or tag
 - Drag and drop to reorder categories/resources
-- Light and dark themes
+- Light, dark, or system-default theme, saved to your account
 - Edit mode - toggle it on from the user menu to add, edit, delete and rearrange things, then save when you're done
 - Multi-user accounts with admin and regular user roles
 - The first account created automatically becomes the admin
