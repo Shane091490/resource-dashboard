@@ -16,6 +16,7 @@ A self-hosted dashboard for organizing links to all the apps and services you ru
 - Single sign-on login through any OIDC provider, including Keycloak
 - Export everything to a JSON file and import it back in later, with a confirmation step before anything gets overwritten
 - Icons for new resources are suggested automatically based on the name you type
+- Pull in resources straight from Pangolin, sorted into categories automatically, with an optional switch to keep adding newly created ones on their own
 
 ## What you need
 
@@ -41,6 +42,10 @@ Log in as admin, go to Settings > OIDC, and enter your provider's issuer URL, cl
 ```
 https://your-domain.com/api/auth/oidc/callback
 ```
+
+## Importing from Pangolin
+
+If you expose services publicly through Pangolin, you can pull them all in as resource cards instead of adding each one by hand. Log in as admin, go to Settings > Pangolin import, and enter the address and API key for Pangolin's Integration API - this is a separate address from your regular Pangolin dashboard and has to be turned on and given its own address first (the page links to Pangolin's own documentation for that part). Click Import now to bring everything in right away, or turn on auto-sync to have it check every few minutes and add any newly created ones by itself. Each resource is sorted into a category based on what kind of app it looks like (media server, monitoring tool, and so on), with anything it doesn't recognize landing in a general category.
 
 ## Backing up your data
 
