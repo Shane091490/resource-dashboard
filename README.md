@@ -7,6 +7,8 @@ A self-hosted dashboard for organizing links to all the apps and services you ru
 <img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/e40db467-26d8-4b0d-be37-490ca06e4345" />
 <img width="1906" height="837" alt="image" src="https://github.com/user-attachments/assets/c2fbf794-2c2d-4df7-b089-5587d861e3b1" />
 <img width="1888" height="863" alt="image" src="https://github.com/user-attachments/assets/dd765767-c2c3-4eb4-ad82-2820dc0b80dc" />
+<img width="1900" height="877" alt="image" src="https://github.com/user-attachments/assets/0af1b606-a20b-4ca7-9d65-3f8bec0033fb" />
+
 
 ## Features
 
