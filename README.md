@@ -25,6 +25,7 @@ A self-hosted dashboard for organizing links to all the apps and services you ru
 - Export everything to a JSON file and import it back in later, with a confirmation step before anything gets overwritten
 - Icons for new resources are suggested automatically based on the name you type
 - Pull in resources straight from Pangolin, sorted into categories automatically, with an optional switch to keep adding newly created ones on their own
+- Installable as an app on your phone, tablet, or computer, and still opens even with a spotty connection
 
 ## What you need
 
@@ -54,6 +55,10 @@ https://your-domain.com/api/auth/oidc/callback
 ## Importing from Pangolin
 
 If you expose services publicly through Pangolin, you can pull them all in as resource cards instead of adding each one by hand. Log in as admin, go to Settings > Pangolin import, and enter the address and API key for Pangolin's Integration API - this is a separate address from your regular Pangolin dashboard and has to be turned on and given its own address first (the page links to Pangolin's own documentation for that part). Click Import now to bring everything in right away, or turn on auto-sync to have it check every few minutes and add any newly created ones by itself. Each resource is sorted into a category based on what kind of app it looks like (media server, monitoring tool, and so on), with anything it doesn't recognize landing in a general category.
+
+## Installing it as an app
+
+The dashboard can be installed like a regular app instead of just living in a browser tab. On a phone, open it in Chrome or Safari and use "Add to Home Screen" (Safari) or the install prompt/menu option (Chrome); on a computer, look for the install icon in the address bar (Chrome/Edge). Once installed it opens in its own window, gets its own icon, and keeps working (aside from anything that needs a live connection) if your network drops out briefly.
 
 ## Backing up your data
 

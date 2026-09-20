@@ -351,6 +351,12 @@ a {
   outline-offset: -1px;
 }
 
+.field input:disabled,
+.field textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .field-row {
   display: flex;
   gap: 0.75rem;
@@ -745,9 +751,13 @@ a {
 }
 
 .dashboard-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--text-muted);
   padding: 3rem 1rem;
+  min-height: 50vh;
 }
 
 /* ---------- category card ---------- */

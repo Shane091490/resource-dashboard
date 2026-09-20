@@ -398,36 +398,37 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <SortableContext items={filteredCategories.map((c) => `categorycard-${c.id}`)} strategy={rectSortingStrategy}>
-              <div className="category-columns">
-                {columns.map((col, colIndex) => (
-                  <div className="category-column" key={colIndex}>
-                    {col.map((category) => (
-                      <CategoryCard
-                        key={category.id}
-                        category={category}
-                        isAdmin={isAdmin}
-                        isEditMode={isEditMode}
-                        onEditCategory={setEditingCategory}
-                        onDeleteCategory={setDeletingCategory}
-                        onAddResource={setAddingResourceTo}
-                        onEditResource={setEditingResource}
-                        onDeleteResource={setDeletingResource}
-                      />
-                    ))}
-                  </div>
-                ))}
-                {!filteredCategories.length ? (
-                  <div className="dashboard-empty">
-                    {search
-                      ? "No resources match your search."
-                      : canEdit
-                      ? "No categories yet. Tap the + button to add one."
-                      : isAdmin
-                      ? "No categories yet. Click Edit dashboard in the user menu to add one."
-                      : "Nothing here yet."}
-                  </div>
-                ) : null}
-              </div>
+              {filteredCategories.length ? (
+                <div className="category-columns">
+                  {columns.map((col, colIndex) => (
+                    <div className="category-column" key={colIndex}>
+                      {col.map((category) => (
+                        <CategoryCard
+                          key={category.id}
+                          category={category}
+                          isAdmin={isAdmin}
+                          isEditMode={isEditMode}
+                          onEditCategory={setEditingCategory}
+                          onDeleteCategory={setDeletingCategory}
+                          onAddResource={setAddingResourceTo}
+                          onEditResource={setEditingResource}
+                          onDeleteResource={setDeletingResource}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="dashboard-empty">
+                  {search
+                    ? "No resources match your search."
+                    : canEdit
+                    ? "No categories yet. Tap the + button to add one."
+                    : isAdmin
+                    ? "No categories yet. Click Edit dashboard in the user menu to add one."
+                    : "Nothing here yet."}
+                </div>
+              )}
             </SortableContext>
             <DragOverlay>
               {activeResource ? <ResourceCard resource={activeResource} isAdmin={isAdmin} isEditMode={isEditMode} onEdit={() => {}} onDelete={() => {}} /> : null}

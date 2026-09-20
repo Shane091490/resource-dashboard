@@ -92,7 +92,13 @@ export default function OidcSettingsPage({ navigate, showToast }) {
 
               <label className="field">
                 <span>Provider display name</span>
-                <input type="text" placeholder="Keycloak" value={form.providerName} onChange={(e) => setForm({ ...form, providerName: e.target.value })} />
+                <input
+                  type="text"
+                  placeholder="Keycloak"
+                  value={form.providerName}
+                  onChange={(e) => setForm({ ...form, providerName: e.target.value })}
+                  disabled={!form.enabled}
+                />
               </label>
               <label className="field">
                 <span>Issuer URL</span>
@@ -101,11 +107,17 @@ export default function OidcSettingsPage({ navigate, showToast }) {
                   placeholder="https://login.example.com/realms/myrealm"
                   value={form.issuerUrl}
                   onChange={(e) => setForm({ ...form, issuerUrl: e.target.value })}
+                  disabled={!form.enabled}
                 />
               </label>
               <label className="field">
                 <span>Client ID</span>
-                <input type="text" value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })} />
+                <input
+                  type="text"
+                  value={form.clientId}
+                  onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                  disabled={!form.enabled}
+                />
               </label>
               <label className="field">
                 <span>Client secret</span>
@@ -114,6 +126,7 @@ export default function OidcSettingsPage({ navigate, showToast }) {
                   placeholder={hasClientSecret ? "Unchanged (leave blank to keep current secret)" : ""}
                   value={form.clientSecret}
                   onChange={(e) => setForm({ ...form, clientSecret: e.target.value })}
+                  disabled={!form.enabled}
                 />
               </label>
               <label className="field">
@@ -123,11 +136,17 @@ export default function OidcSettingsPage({ navigate, showToast }) {
                   placeholder={defaultRedirect}
                   value={form.redirectUri}
                   onChange={(e) => setForm({ ...form, redirectUri: e.target.value })}
+                  disabled={!form.enabled}
                 />
               </label>
               <label className="field">
                 <span>Scopes</span>
-                <input type="text" value={form.scopes} onChange={(e) => setForm({ ...form, scopes: e.target.value })} />
+                <input
+                  type="text"
+                  value={form.scopes}
+                  onChange={(e) => setForm({ ...form, scopes: e.target.value })}
+                  disabled={!form.enabled}
+                />
               </label>
 
               {error ? <div className="field-error">{error}</div> : null}
