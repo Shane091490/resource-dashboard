@@ -79,12 +79,16 @@ router.delete("/users/:id", async (req, res) => {
 
 router.get("/app-settings", async (req, res) => {
   const settings = await getAppSettings();
-  res.json({ allowRegistration: settings.allow_registration, dashboardTitle: settings.dashboard_title });
+  res.json({
+    allowRegistration: settings.allow_registration,
+    dashboardTitle: settings.dashboard_title,
+    dashboardIcon: settings.dashboard_icon,
+  });
 });
 
 router.put("/app-settings", async (req, res) => {
-  const { allowRegistration, dashboardTitle } = req.body || {};
-  if (allowRegistration === undefined && dashboardTitle === undefined) {
+  const { allowRegistration, dashboardTitle, dashboardIcon } = req.body || {};
+  if (allowRegistration === undefined && dashboardTitle === undefined && dashboardIcon === undefined) {
     return res.status(400).json({ error: "Nothing to update" });
   }
   if (allowRegistration !== undefined && typeof allowRegistration !== "boolean") {
@@ -93,17 +97,21 @@ router.put("/app-settings", async (req, res) => {
   if (dashboardTitle !== undefined && !String(dashboardTitle).trim()) {
     return res.status(400).json({ error: "Dashboard title cannot be empty" });
   }
+  if (dashboardIcon !== undefined && typeof dashboardIcon !== "string") {
+    return res.status(400).json({ error: "dashboardIcon must be a string" });
+  }
 
   const current = await getAppSettings();
   const nextAllow = allowRegistration !== undefined ? allowRegistration : current.allow_registration;
   const nextTitle = dashboardTitle !== undefined ? String(dashboardTitle).trim().slice(0, 60) : current.dashboard_title;
+  const nextIcon = dashboardIcon !== undefined ? dashboardIcon.trim().slice(0, 16) : current.dashboard_icon;
 
   await pool.query(
-    `INSERT INTO app_settings (id, allow_registration, dashboard_title) VALUES (1, $1, $2)
-     ON CONFLICT (id) DO UPDATE SET allow_registration = EXCLUDED.allow_registration, dashboard_title = EXCLUDED.dashboard_title`,
-    [nextAllow, nextTitle]
+    `INSERT INTO app_settings (id, allow_registration, dashboard_title, dashboard_icon) VALUES (1, $1, $2, $3)
+     ON CONFLICT (id) DO UPDATE SET allow_registration = EXCLUDED.allow_registration, dashboard_title = EXCLUDED.dashboard_title, dashboard_icon = EXCLUDED.dashboard_icon`,
+    [nextAllow, nextTitle, nextIcon]
   );
-  res.json({ allowRegistration: nextAllow, dashboardTitle: nextTitle });
+  res.json({ allowRegistration: nextAllow, dashboardTitle: nextTitle, dashboardIcon: nextIcon });
 });
 
 router.get("/oidc", (req, res) => {

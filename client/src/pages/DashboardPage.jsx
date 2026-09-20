@@ -100,6 +100,7 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   const [deletingPage, setDeletingPage] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [dashboardTitle, setDashboardTitle] = useState("Dashboard");
+  const [dashboardIcon, setDashboardIcon] = useState("🚀");
 
   const isAdmin = !!user.is_admin;
   const canEdit = isAdmin && isEditMode;
@@ -123,7 +124,10 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   useEffect(() => {
     api
       .getPublicSettings()
-      .then(({ dashboardTitle }) => setDashboardTitle(dashboardTitle))
+      .then(({ dashboardTitle, dashboardIcon }) => {
+        setDashboardTitle(dashboardTitle);
+        setDashboardIcon(dashboardIcon);
+      })
       .catch(() => {});
   }, []);
 
@@ -253,9 +257,10 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
     });
   }
 
-  async function handleSaveTitle(title) {
-    const { dashboardTitle } = await api.saveAppSettings({ dashboardTitle: title });
+  async function handleSaveTitle(title, icon) {
+    const { dashboardTitle, dashboardIcon } = await api.saveAppSettings({ dashboardTitle: title, dashboardIcon: icon });
     setDashboardTitle(dashboardTitle);
+    setDashboardIcon(dashboardIcon);
     showToast("Dashboard title updated.");
   }
 
@@ -381,6 +386,7 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         onOpenSettings={() => navigate("/settings")}
         onLogout={onLogout}
         dashboardTitle={dashboardTitle}
+        dashboardIcon={dashboardIcon}
         onSaveTitle={handleSaveTitle}
       />
 

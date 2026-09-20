@@ -22,6 +22,7 @@ export default function Navbar({
   onOpenSettings,
   onLogout,
   dashboardTitle,
+  dashboardIcon,
   onSaveTitle,
 }) {
   const [renamingTitle, setRenamingTitle] = useState(false);
@@ -31,9 +32,11 @@ export default function Navbar({
     <header className="navbar">
       <div className="navbar-top">
         <div className="navbar-brand">
-          <span className="navbar-logo" aria-hidden="true">
-            🚀
-          </span>
+          {dashboardIcon ? (
+            <span className="navbar-logo" aria-hidden="true">
+              {dashboardIcon}
+            </span>
+          ) : null}
           <span className="navbar-title">{dashboardTitle}</span>
           {canEdit ? (
             <button
@@ -99,8 +102,9 @@ export default function Navbar({
       {renamingTitle ? (
         <DashboardTitleModal
           currentTitle={dashboardTitle}
-          onSave={async (title) => {
-            await onSaveTitle(title);
+          currentIcon={dashboardIcon}
+          onSave={async (title, icon) => {
+            await onSaveTitle(title, icon);
             setRenamingTitle(false);
           }}
           onCancel={() => setRenamingTitle(false)}

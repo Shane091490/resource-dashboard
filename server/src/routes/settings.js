@@ -4,11 +4,11 @@ import { getAppSettings } from "../db.js";
 
 const router = Router();
 
-// Public (any authenticated user, not just admins) - the dashboard title is shown in the navbar
-// for everyone, unlike the rest of app-settings which is admin-only under /api/admin.
+// Public (any authenticated user, not just admins) - the dashboard title/icon is shown in the
+// navbar for everyone, unlike the rest of app-settings which is admin-only under /api/admin.
 router.get("/", requireAuth, async (req, res) => {
   const settings = await getAppSettings();
-  res.json({ dashboardTitle: settings.dashboard_title });
+  res.json({ dashboardTitle: settings.dashboard_title, dashboardIcon: settings.dashboard_icon });
 });
 
 export default router;

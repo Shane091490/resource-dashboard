@@ -8,6 +8,7 @@ export default function SettingsPage({ navigate, showToast }) {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);
+  const [pendingWipe, setPendingWipe] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -53,6 +54,16 @@ export default function SettingsPage({ navigate, showToast }) {
     try {
       const { imported } = await api.importData(data);
       showToast(`Imported ${imported.pages} pages, ${imported.categories} categories, ${imported.resources} resources.`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function confirmWipe() {
+    setPendingWipe(false);
+    try {
+      await api.wipeData();
+      showToast("All categories and resources deleted.");
     } catch (err) {
       showToast(err.message);
     }
@@ -108,6 +119,16 @@ export default function SettingsPage({ navigate, showToast }) {
             <input ref={fileInputRef} type="file" accept="application/json" hidden onChange={handleFileChosen} />
           </div>
         </section>
+
+        <section className="settings-section settings-danger-zone">
+          <h2>Danger zone</h2>
+          <p className="settings-hint">
+            Permanently delete every category and resource on every page. Pages, users, and settings are kept.
+          </p>
+          <button type="button" className="btn btn-danger" onClick={() => setPendingWipe(true)}>
+            Delete all categories &amp; resources
+          </button>
+        </section>
       </main>
 
       {pendingImport ? (
@@ -118,6 +139,17 @@ export default function SettingsPage({ navigate, showToast }) {
           danger
           onConfirm={confirmImport}
           onCancel={() => setPendingImport(null)}
+        />
+      ) : null}
+
+      {pendingWipe ? (
+        <ConfirmDialog
+          title="Delete all categories & resources?"
+          message="This permanently deletes every category and resource on every page, including their images. Pages themselves, user accounts, and settings are not affected. This cannot be undone."
+          confirmLabel="Delete everything"
+          danger
+          onConfirm={confirmWipe}
+          onCancel={() => setPendingWipe(false)}
         />
       ) : null}
     </div>

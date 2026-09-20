@@ -163,4 +163,16 @@ router.post("/import", async (req, res) => {
   }
 });
 
+router.delete("/wipe", async (req, res) => {
+  const { confirm } = req.body || {};
+  if (confirm !== "DELETE") return res.status(400).json({ error: 'Confirmation required (send confirm: "DELETE")' });
+
+  const { rows: images } = await pool.query(
+    "SELECT image FROM categories WHERE image IS NOT NULL UNION ALL SELECT image FROM resources WHERE image IS NOT NULL"
+  );
+  await pool.query("DELETE FROM categories");
+  images.forEach((r) => deleteImageFile(r.image));
+  res.json({ ok: true });
+});
+
 export default router;

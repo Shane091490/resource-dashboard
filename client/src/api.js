@@ -80,6 +80,7 @@ export const api = {
 
   exportData: () => request("/data/export"),
   importData: (data) => request("/data/import", { method: "POST", body: { confirm: true, data } }),
+  wipeData: () => request("/data/wipe", { method: "DELETE", body: { confirm: "DELETE" } }),
 };
 
 export function imageUrl(image) {

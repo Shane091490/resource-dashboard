@@ -979,6 +979,14 @@ a {
   margin-bottom: 0.6rem;
 }
 
+.settings-danger-zone {
+  border-color: var(--danger, #d9534f);
+}
+
+.settings-danger-zone h2 {
+  color: var(--danger, #d9534f);
+}
+
 .settings-section-heading-row {
   display: flex;
   align-items: center;
