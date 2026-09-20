@@ -1,6 +1,6 @@
-import crypto from "crypto";
 import { Issuer, generators, custom } from "openid-client";
 import { pool } from "./db.js";
+import { encryptSecret as encrypt, decryptSecret as decrypt } from "./crypto.js";
 
 export { generators };
 
@@ -9,32 +9,14 @@ export { generators };
 // rather than a direct LAN hop.
 custom.setHttpOptionsDefaults({ timeout: 15000 });
 
-const ENC_ALGO = "aes-256-gcm";
-
-function getEncryptionKey() {
-  const secret = process.env.JWT_SECRET || "dev-secret-change-me";
-  return crypto.scryptSync(secret, "resource-dashboard-oidc-secret", 32);
-}
+const SECRET_PURPOSE = "resource-dashboard-oidc-secret";
 
 function encryptSecret(plain) {
-  if (!plain) return null;
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ENC_ALGO, getEncryptionKey(), iv);
-  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, enc]).toString("base64");
+  return encrypt(plain, SECRET_PURPOSE);
 }
 
 function decryptSecret(blob) {
-  if (!blob) return null;
-  const buf = Buffer.from(blob, "base64");
-  const iv = buf.subarray(0, 12);
-  const tag = buf.subarray(12, 28);
-  const enc = buf.subarray(28);
-  const decipher = crypto.createDecipheriv(ENC_ALGO, getEncryptionKey(), iv);
-  decipher.setAuthTag(tag);
-  const dec = Buffer.concat([decipher.update(enc), decipher.final()]);
-  return dec.toString("utf8");
+  return decrypt(blob, SECRET_PURPOSE);
 }
 
 let cachedSettings = null;

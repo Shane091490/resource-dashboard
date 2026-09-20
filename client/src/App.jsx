@@ -6,12 +6,14 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import UserManagementPage from "./pages/UserManagementPage.jsx";
 import OidcSettingsPage from "./pages/OidcSettingsPage.jsx";
+import PangolinSettingsPage from "./pages/PangolinSettingsPage.jsx";
 
 function viewForPath(pathname) {
   if (pathname === "/register") return { view: "register" };
   if (pathname === "/login") return { view: "login" };
   if (pathname === "/settings/users") return { view: "user-management" };
   if (pathname === "/settings/oidc") return { view: "oidc-settings" };
+  if (pathname === "/settings/pangolin") return { view: "pangolin-settings" };
   if (pathname === "/settings") return { view: "settings" };
   const pageMatch = pathname.match(/^\/page\/([^/]+)$/);
   if (pageMatch) return { view: "dashboard", slug: decodeURIComponent(pageMatch[1]) };
@@ -63,7 +65,7 @@ export default function App() {
     if (user && (route.view === "login" || route.view === "register")) {
       navigate("/", true);
     }
-    if (user && !user.is_admin && ["settings", "user-management", "oidc-settings"].includes(route.view)) {
+    if (user && !user.is_admin && ["settings", "user-management", "oidc-settings", "pangolin-settings"].includes(route.view)) {
       navigate("/", true);
     }
   }, [user, route.view, navigate]);
@@ -98,6 +100,7 @@ export default function App() {
         <UserManagementPage currentUser={user} navigate={navigate} showToast={showToast} />
       )}
       {route.view === "oidc-settings" && <OidcSettingsPage navigate={navigate} showToast={showToast} />}
+      {route.view === "pangolin-settings" && <PangolinSettingsPage navigate={navigate} showToast={showToast} />}
       {route.view === "dashboard" && (
         <DashboardPage
           user={user}

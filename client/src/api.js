@@ -78,6 +78,11 @@ export const api = {
   getOidcSettings: () => request("/admin/oidc"),
   saveOidcSettings: (settings) => request("/admin/oidc", { method: "PUT", body: settings }),
 
+  getPangolinSettings: () => request("/pangolin/settings"),
+  savePangolinSettings: (settings) => request("/pangolin/settings", { method: "PUT", body: settings }),
+  setPangolinAutoSync: (enabled) => request("/pangolin/auto-sync", { method: "PUT", body: { enabled } }),
+  importPangolinResources: () => request("/pangolin/import", { method: "POST" }),
+
   exportData: () => request("/data/export"),
   importData: (data) => request("/data/import", { method: "POST", body: { confirm: true, data } }),
   wipeData: () => request("/data/wipe", { method: "DELETE", body: { confirm: "DELETE" } }),

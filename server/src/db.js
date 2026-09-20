@@ -25,6 +25,16 @@ export async function waitForDb(retries = 30, delayMs = 1000) {
 export async function migrate() {
   await pool.query("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS dashboard_title TEXT NOT NULL DEFAULT 'Dashboard'");
   await pool.query("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS dashboard_icon TEXT NOT NULL DEFAULT '🚀'");
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pangolin_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      base_url TEXT,
+      api_key_enc TEXT,
+      org_id TEXT,
+      auto_sync_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      last_synced_at TIMESTAMPTZ
+    )
+  `);
 }
 
 export async function getAppSettings() {

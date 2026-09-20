@@ -107,6 +107,14 @@ export default function SettingsPage({ navigate, showToast }) {
         </section>
 
         <section className="settings-section">
+          <h2>Pangolin import</h2>
+          <p className="settings-hint">Import public resources from Pangolin, and optionally keep new ones synced in automatically.</p>
+          <button type="button" className="btn" onClick={() => navigate("/settings/pangolin")}>
+            Configure Pangolin import
+          </button>
+        </section>
+
+        <section className="settings-section">
           <h2>Import / export</h2>
           <p className="settings-hint">Export all pages, categories, and resources as a JSON file, or restore from a previous export.</p>
           <div className="settings-actions-row">

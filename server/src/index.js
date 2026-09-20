@@ -13,7 +13,9 @@ import mediaRoutes from "./routes/media.js";
 import dataRoutes from "./routes/data.js";
 import settingsRoutes from "./routes/settings.js";
 import iconsRoutes from "./routes/icons.js";
+import pangolinRoutes from "./routes/pangolin.js";
 import { warmIconIndex } from "./icons.js";
+import { loadPangolinSettings, startPangolinAutoSyncLoop } from "./pangolin.js";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -29,6 +31,7 @@ app.use("/api/uploads", mediaRoutes);
 app.use("/api/data", dataRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/icons", iconsRoutes);
+app.use("/api/pangolin", pangolinRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
@@ -45,9 +48,11 @@ const PORT = process.env.PORT || 3000;
 waitForDb()
   .then(migrate)
   .then(initOidc)
+  .then(loadPangolinSettings)
   .then(() => {
     app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
     warmIconIndex();
+    startPangolinAutoSyncLoop();
   })
   .catch((err) => {
     console.error("Could not start server", err);
