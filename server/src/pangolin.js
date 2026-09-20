@@ -27,10 +27,19 @@ export function getPublicPangolinSettings() {
   };
 }
 
+// Pangolin's Integration API always mounts its routes under /v1, whether or not the admin
+// setting up the reverse-proxy route thought to put that in the exposed URL. Normalize it here
+// so both "https://api.example.com" and "https://api.example.com/v1" work the same way.
+function normalizeBaseUrl(url) {
+  const trimmed = String(url || "").trim().replace(/\/+$/, "");
+  if (!trimmed) return trimmed;
+  return /\/v1$/i.test(trimmed) ? trimmed : `${trimmed}/v1`;
+}
+
 export async function savePangolinConnection({ baseUrl, apiKey, orgId }) {
   const existing = cachedSettings || (await loadPangolinSettings());
   const keyEnc = apiKey ? encryptSecret(apiKey, SECRET_PURPOSE) : existing?.api_key_enc || null;
-  const nextBaseUrl = baseUrl !== undefined ? String(baseUrl).trim().replace(/\/+$/, "") : existing?.base_url || "";
+  const nextBaseUrl = baseUrl !== undefined ? normalizeBaseUrl(baseUrl) : existing?.base_url || "";
   const nextOrgId = orgId !== undefined ? String(orgId).trim() : existing?.org_id || "";
 
   const { rows } = await pool.query(
