@@ -20,9 +20,16 @@ function viewForPath(pathname) {
   return { view: "dashboard", slug: null };
 }
 
+const THEME_ORDER = ["light", "dark", "system"];
+
+function readStoredTheme() {
+  const stored = localStorage.getItem("dashboard-theme");
+  return THEME_ORDER.includes(stored) ? stored : "system";
+}
+
 export default function App() {
   const [user, setUser] = useState(undefined); // undefined = loading, null = logged out
-  const [theme, setTheme] = useState(() => localStorage.getItem("dashboard-theme") || "light");
+  const [theme, setTheme] = useState(readStoredTheme);
   const [toast, setToast] = useState("");
   const [route, setRoute] = useState(() => viewForPath(window.location.pathname));
 
@@ -35,7 +42,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    // "system" means leaving data-theme unset entirely, so the plain prefers-color-scheme
+    // media query in styles.css takes over instead of the explicit [data-theme] overrides.
+    if (theme === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("dashboard-theme", theme);
   }, [theme]);
 
@@ -53,7 +63,12 @@ export default function App() {
   useEffect(() => {
     api
       .me()
-      .then(({ user }) => setUser(user))
+      .then(({ user }) => {
+        setUser(user);
+        // The account's saved theme is the source of truth once we know it - it follows the
+        // user across browsers/devices, unlike the localStorage value used before login.
+        if (THEME_ORDER.includes(user.theme)) setTheme(user.theme);
+      })
       .catch(() => setUser(null));
   }, []);
 
@@ -76,6 +91,19 @@ export default function App() {
     navigate("/login", true);
   }
 
+  function handleAuthed(authedUser) {
+    setUser(authedUser);
+    if (THEME_ORDER.includes(authedUser.theme)) setTheme(authedUser.theme);
+  }
+
+  function handleCycleTheme() {
+    setTheme((t) => {
+      const next = THEME_ORDER[(THEME_ORDER.indexOf(t) + 1) % THEME_ORDER.length];
+      if (user) api.setTheme(next).catch(() => {});
+      return next;
+    });
+  }
+
   if (user === undefined) {
     return (
       <div className="page-loading">
@@ -87,7 +115,7 @@ export default function App() {
   if (!user) {
     return (
       <>
-        <AuthScreen mode={route.view === "register" ? "register" : "login"} navigate={navigate} onAuthed={setUser} />
+        <AuthScreen mode={route.view === "register" ? "register" : "login"} navigate={navigate} onAuthed={handleAuthed} />
         {toast ? <Toast message={toast} /> : null}
       </>
     );
@@ -107,7 +135,7 @@ export default function App() {
           slug={route.slug}
           navigate={navigate}
           theme={theme}
-          onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+          onToggleTheme={handleCycleTheme}
           onLogout={handleLogout}
           showToast={showToast}
         />

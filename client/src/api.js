@@ -42,6 +42,7 @@ export const api = {
   login: (email, password) => request("/auth/login", { method: "POST", body: { email, password } }),
   logout: () => request("/auth/logout", { method: "POST" }),
   me: () => request("/auth/me"),
+  setTheme: (theme) => request("/auth/theme", { method: "PUT", body: { theme } }),
   oidcConfig: () => request("/auth/oidc/config"),
   registrationStatus: () => request("/auth/registration-status"),
   getPublicSettings: () => request("/settings"),
