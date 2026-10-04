@@ -54,6 +54,18 @@ export async function savePangolinConnection({ baseUrl, apiKey, orgId }) {
   return getPublicPangolinSettings();
 }
 
+// Records URLs of resources the admin deliberately removed (directly, or via deleting their
+// category) so a future Pangolin auto-sync won't silently re-add them. A resource re-created
+// manually with the same URL is unaffected - the sync's "already exists" check takes priority.
+export async function ignoreUrlsOnDelete(urls) {
+  const clean = [...new Set(urls.filter(Boolean))];
+  if (!clean.length) return;
+  await pool.query(
+    "INSERT INTO pangolin_ignored_urls (url) SELECT unnest($1::text[]) ON CONFLICT (url) DO NOTHING",
+    [clean]
+  );
+}
+
 export async function setAutoSyncEnabled(enabled) {
   const { rows } = await pool.query("UPDATE pangolin_settings SET auto_sync_enabled = $1 WHERE id = 1 RETURNING *", [!!enabled]);
   cachedSettings = rows[0] || cachedSettings;
@@ -137,11 +149,9 @@ export async function runPangolinImport() {
     await client.query("BEGIN");
     const pageId = await getHomePageId(client);
 
-    const { rows: existing } = await client.query(
-      "SELECT r.url FROM resources r JOIN categories c ON c.id = r.category_id WHERE c.page_id = $1",
-      [pageId]
-    );
-    const existingUrls = new Set(existing.map((r) => r.url));
+    const { rows: existing } = await client.query("SELECT url FROM resources");
+    const { rows: ignored } = await client.query("SELECT url FROM pangolin_ignored_urls");
+    const existingUrls = new Set([...existing.map((r) => r.url), ...ignored.map((r) => r.url)]);
 
     const categoryIdByName = new Map();
     const nextPositionByCategory = new Map();

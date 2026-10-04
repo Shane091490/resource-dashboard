@@ -30,14 +30,15 @@ router.get("/:id/dashboard", async (req, res) => {
   const { rows: pageRows } = await pool.query("SELECT id, name, slug, position, is_home FROM pages WHERE id = $1", [pageId]);
   if (!pageRows[0]) return res.status(404).json({ error: "Page not found" });
 
-  const { rows: categories } = await pool.query(
-    "SELECT id, page_id, name, image, position FROM categories WHERE page_id = $1 ORDER BY position ASC, id ASC",
+  const { rows: allCategories } = await pool.query(
+    "SELECT id, page_id, name, image, position, admin_only FROM categories WHERE page_id = $1 ORDER BY position ASC, id ASC",
     [pageId]
   );
+  const categories = req.user.is_admin ? allCategories : allCategories.filter((c) => !c.admin_only);
   const categoryIds = categories.map((c) => c.id);
   const { rows: resources } = categoryIds.length
     ? await pool.query(
-        `SELECT id, category_id, name, description, image, url, tags, position
+        `SELECT id, category_id, name, description, image, url, tags, position, last_check_ok, last_checked_at
          FROM resources WHERE category_id = ANY($1) ORDER BY position ASC, id ASC`,
         [categoryIds]
       )

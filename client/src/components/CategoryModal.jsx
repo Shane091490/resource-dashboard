@@ -1,9 +1,12 @@
 import { useState } from "react";
 import ImageField from "./ImageField.jsx";
+import ToggleSwitch from "./ToggleSwitch.jsx";
 
-export default function CategoryModal({ category, onSave, onCancel }) {
+export default function CategoryModal({ category, pages, currentPageId, onSave, onCancel }) {
   const [name, setName] = useState(category?.name || "");
   const [image, setImage] = useState(category?.image || null);
+  const [adminOnly, setAdminOnly] = useState(category?.admin_only || false);
+  const [pageId, setPageId] = useState(category?.page_id || currentPageId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -12,7 +15,7 @@ export default function CategoryModal({ category, onSave, onCancel }) {
     setError("");
     setSaving(true);
     try {
-      await onSave({ name: name.trim(), image });
+      await onSave({ name: name.trim(), image, admin_only: adminOnly, page_id: pageId });
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -31,6 +34,22 @@ export default function CategoryModal({ category, onSave, onCancel }) {
           <label className="field">
             <span>Image</span>
             <ImageField value={image} onChange={setImage} />
+          </label>
+          {pages && pages.length > 1 ? (
+            <label className="field">
+              <span>Page</span>
+              <select value={pageId} onChange={(e) => setPageId(Number(e.target.value))}>
+                {pages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <label className="field field-toggle-row">
+            <span>Admin only (hidden from regular users)</span>
+            <ToggleSwitch checked={adminOnly} onChange={setAdminOnly} ariaLabel="Admin only" />
           </label>
           {error ? <div className="field-error">{error}</div> : null}
           <div className="modal-actions">

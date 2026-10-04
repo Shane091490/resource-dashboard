@@ -9,6 +9,7 @@ import ResourceModal from "../components/ResourceModal.jsx";
 import CategoryModal from "../components/CategoryModal.jsx";
 import PageModal from "../components/PageModal.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import MoveResourcesModal from "../components/MoveResourcesModal.jsx";
 
 function pathForPage(page) {
   return page.is_home ? "/" : `/page/${page.slug}`;
@@ -102,6 +103,12 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   const [dashboardTitle, setDashboardTitle] = useState("Dashboard");
   const [dashboardIcon, setDashboardIcon] = useState("🚀");
 
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedResourceIds, setSelectedResourceIds] = useState(() => new Set());
+  const [bulkMoving, setBulkMoving] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const categoriesRef = useRef(null);
+
   const isAdmin = !!user.is_admin;
   const canEdit = isAdmin && isEditMode;
   const columnCount = useColumnCount();
@@ -160,6 +167,55 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
     };
   }, [currentPage, showToast]);
 
+  const refreshDashboard = useCallback(async () => {
+    if (!currentPage) return;
+    const { categories } = await api.getDashboard(currentPage.id);
+    setCategories(categories);
+  }, [currentPage]);
+
+  useEffect(() => {
+    categoriesRef.current = categories;
+  }, [categories]);
+
+  // Polls just the uptime status of resources on the current page every minute, patching it into
+  // existing state rather than refetching the whole dashboard - a full refetch would blow away any
+  // in-progress drag. Reads categoriesRef instead of depending on `categories` so the interval
+  // itself isn't torn down and recreated by the state update this causes.
+  useEffect(() => {
+    if (!currentPage) return;
+    let cancelled = false;
+    async function poll() {
+      const current = categoriesRef.current;
+      if (!current || !current.length) return;
+      const ids = current.flatMap((c) => c.resources.map((r) => r.id));
+      if (!ids.length) return;
+      try {
+        const { statuses } = await api.getResourceStatus(ids);
+        if (cancelled) return;
+        const byId = new Map(statuses.map((s) => [s.id, s]));
+        setCategories((prev) =>
+          prev
+            ? prev.map((c) => ({
+                ...c,
+                resources: c.resources.map((r) =>
+                  byId.has(r.id)
+                    ? { ...r, last_check_ok: byId.get(r.id).last_check_ok, last_checked_at: byId.get(r.id).last_checked_at }
+                    : r
+                ),
+              }))
+            : prev
+        );
+      } catch {
+        /* transient poll failures are not worth surfacing to the user */
+      }
+    }
+    const interval = setInterval(poll, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [currentPage]);
+
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
     const q = search.trim().toLowerCase();
@@ -175,8 +231,19 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
   }, [categories, search]);
 
   const columns = useMemo(() => {
+    // Distribute by estimated rendered height (header + one unit per resource) rather than
+    // round-robin by index, so a page mixing large and small categories doesn't end up with one
+    // tall column next to several short ones.
     const cols = Array.from({ length: columnCount }, () => []);
-    filteredCategories.forEach((cat, i) => cols[i % columnCount].push(cat));
+    const heights = Array.from({ length: columnCount }, () => 0);
+    filteredCategories.forEach((cat) => {
+      let shortest = 0;
+      for (let i = 1; i < columnCount; i++) {
+        if (heights[i] < heights[shortest]) shortest = i;
+      }
+      cols[shortest].push(cat);
+      heights[shortest] += 1 + cat.resources.length;
+    });
     return cols;
   }, [filteredCategories, columnCount]);
 
@@ -255,6 +322,46 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
       if (prev) showToast("Changes saved.");
       return next;
     });
+    setSelectMode(false);
+    setSelectedResourceIds(new Set());
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((prev) => !prev);
+    setSelectedResourceIds(new Set());
+  }
+
+  function toggleSelectResource(id) {
+    setSelectedResourceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkMove(categoryId) {
+    const ids = [...selectedResourceIds];
+    await api.bulkMoveResources(ids, categoryId);
+    await refreshDashboard();
+    setBulkMoving(false);
+    setSelectedResourceIds(new Set());
+    setSelectMode(false);
+    showToast(`Moved ${ids.length} resource${ids.length === 1 ? "" : "s"}.`);
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selectedResourceIds];
+    setBulkDeleting(false);
+    try {
+      await api.bulkDeleteResources(ids);
+      await refreshDashboard();
+      setSelectedResourceIds(new Set());
+      setSelectMode(false);
+      showToast(`Deleted ${ids.length} resource${ids.length === 1 ? "" : "s"}.`);
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   async function handleSaveTitle(title, icon) {
@@ -266,6 +373,8 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   function handleNavigatePage(page) {
     setSearch("");
+    setSelectMode(false);
+    setSelectedResourceIds(new Set());
     navigate(pathForPage(page));
   }
 
@@ -304,11 +413,17 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   async function handleSaveCategory(data) {
     if (editingCategory) {
-      const { category } = await api.updateCategory(editingCategory.id, data);
-      setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, ...category } : c)));
+      const movedAway = data.page_id !== currentPage.id;
+      await api.updateCategory(editingCategory.id, data);
       setEditingCategory(null);
+      if (movedAway) {
+        setCategories((prev) => prev.filter((c) => c.id !== editingCategory.id));
+        showToast("Category moved to another page.");
+      } else {
+        await refreshDashboard();
+      }
     } else {
-      const { category } = await api.createCategory({ ...data, page_id: currentPage.id });
+      const { category } = await api.createCategory(data);
       setCategories((prev) => [...prev, category]);
       setAddingCategory(false);
     }
@@ -327,17 +442,19 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
 
   async function handleSaveResource(data) {
     if (editingResource) {
-      const { resource } = await api.updateResource(editingResource.id, data);
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === resource.category_id ? { ...c, resources: c.resources.map((r) => (r.id === resource.id ? resource : r)) } : c
-        )
-      );
+      const movedAway = data.category_id !== editingResource.category_id && !categories.some((c) => c.id === data.category_id);
+      await api.updateResource(editingResource.id, data);
       setEditingResource(null);
+      if (movedAway) showToast("Resource moved to another page.");
+      await refreshDashboard();
     } else {
-      const { resource } = await api.createResource({ ...data, category_id: addingResourceTo.id });
-      setCategories((prev) => prev.map((c) => (c.id === addingResourceTo.id ? { ...c, resources: [...c.resources, resource] } : c)));
+      const { resource } = await api.createResource(data);
       setAddingResourceTo(null);
+      if (resource.category_id === addingResourceTo.id) {
+        setCategories((prev) => prev.map((c) => (c.id === resource.category_id ? { ...c, resources: [...c.resources, resource] } : c)));
+      } else {
+        await refreshDashboard();
+      }
     }
   }
 
@@ -408,6 +525,9 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
                           category={category}
                           isAdmin={isAdmin}
                           isEditMode={isEditMode}
+                          selectMode={selectMode}
+                          selectedIds={selectedResourceIds}
+                          onToggleSelectResource={toggleSelectResource}
                           onEditCategory={setEditingCategory}
                           onDeleteCategory={setDeletingCategory}
                           onAddResource={setAddingResourceTo}
@@ -451,14 +571,51 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
         )}
 
         {canEdit && categories !== null ? (
+          <button
+            type="button"
+            className={"fab-select-mode" + (selectMode ? " active" : "")}
+            onClick={toggleSelectMode}
+            aria-label="Select resources"
+            title="Select resources"
+          >
+            ☑
+          </button>
+        ) : null}
+
+        {canEdit && categories !== null ? (
           <button type="button" className="fab-add-category" onClick={() => setAddingCategory(true)} aria-label="Add category" title="Add category">
             +
           </button>
         ) : null}
+
+        {selectMode && selectedResourceIds.size > 0 ? (
+          <div className="bulk-action-bar">
+            <span className="bulk-action-count">{selectedResourceIds.size} selected</span>
+            <button type="button" className="btn" onClick={() => setBulkMoving(true)}>
+              Move to...
+            </button>
+            <button type="button" className="btn btn-danger" onClick={() => setBulkDeleting(true)}>
+              Delete
+            </button>
+            <button type="button" className="btn" onClick={() => setSelectedResourceIds(new Set())}>
+              Clear
+            </button>
+          </div>
+        ) : null}
       </main>
 
-      {addingCategory ? <CategoryModal onSave={handleSaveCategory} onCancel={() => setAddingCategory(false)} /> : null}
-      {editingCategory ? <CategoryModal category={editingCategory} onSave={handleSaveCategory} onCancel={() => setEditingCategory(null)} /> : null}
+      {addingCategory ? (
+        <CategoryModal pages={pages} currentPageId={currentPage?.id} onSave={handleSaveCategory} onCancel={() => setAddingCategory(false)} />
+      ) : null}
+      {editingCategory ? (
+        <CategoryModal
+          category={editingCategory}
+          pages={pages}
+          currentPageId={currentPage?.id}
+          onSave={handleSaveCategory}
+          onCancel={() => setEditingCategory(null)}
+        />
+      ) : null}
       {deletingCategory ? (
         <ConfirmDialog
           title="Delete category"
@@ -471,7 +628,12 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
       ) : null}
 
       {addingResourceTo ? (
-        <ResourceModal categoryName={addingResourceTo.name} onSave={handleSaveResource} onCancel={() => setAddingResourceTo(null)} />
+        <ResourceModal
+          categoryName={addingResourceTo.name}
+          categoryId={addingResourceTo.id}
+          onSave={handleSaveResource}
+          onCancel={() => setAddingResourceTo(null)}
+        />
       ) : null}
       {editingResource ? (
         <ResourceModal resource={editingResource} onSave={handleSaveResource} onCancel={() => setEditingResource(null)} />
@@ -484,6 +646,20 @@ export default function DashboardPage({ user, slug, navigate, theme, onToggleThe
           danger
           onConfirm={handleConfirmDeleteResource}
           onCancel={() => setDeletingResource(null)}
+        />
+      ) : null}
+
+      {bulkMoving ? (
+        <MoveResourcesModal count={selectedResourceIds.size} onMove={handleBulkMove} onCancel={() => setBulkMoving(false)} />
+      ) : null}
+      {bulkDeleting ? (
+        <ConfirmDialog
+          title="Delete resources"
+          message={`Delete ${selectedResourceIds.size} selected resource(s)? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleBulkDelete}
+          onCancel={() => setBulkDeleting(false)}
         />
       ) : null}
 

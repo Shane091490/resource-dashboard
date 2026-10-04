@@ -16,6 +16,7 @@ import iconsRoutes from "./routes/icons.js";
 import pangolinRoutes from "./routes/pangolin.js";
 import { warmIconIndex } from "./icons.js";
 import { loadPangolinSettings, startPangolinAutoSyncLoop } from "./pangolin.js";
+import { startUptimeCheckLoop } from "./uptime.js";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -53,6 +54,7 @@ waitForDb()
     app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
     warmIconIndex();
     startPangolinAutoSyncLoop();
+    startUptimeCheckLoop();
   })
   .catch((err) => {
     console.error("Could not start server", err);

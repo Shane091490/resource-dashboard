@@ -53,6 +53,7 @@ export const api = {
   updatePage: (id, data) => request(`/pages/${id}`, { method: "PUT", body: data }),
   deletePage: (id) => request(`/pages/${id}`, { method: "DELETE" }),
 
+  listAllCategories: () => request("/categories"),
   createCategory: (data) => request("/categories", { method: "POST", body: data }),
   updateCategory: (id, data) => request(`/categories/${id}`, { method: "PUT", body: data }),
   deleteCategory: (id) => request(`/categories/${id}`, { method: "DELETE" }),
@@ -63,6 +64,9 @@ export const api = {
   deleteResource: (id) => request(`/resources/${id}`, { method: "DELETE" }),
   reorderResources: (categoryId, order) =>
     request("/resources/reorder", { method: "PUT", body: { category_id: categoryId, order } }),
+  bulkMoveResources: (ids, categoryId) => request("/resources/bulk-move", { method: "PUT", body: { ids, category_id: categoryId } }),
+  bulkDeleteResources: (ids) => request("/resources/bulk", { method: "DELETE", body: { ids } }),
+  getResourceStatus: (ids) => request(`/resources/status?ids=${ids.join(",")}`),
 
   uploadImage: (file) => uploadImage(file),
   lookupIcon: (name) => request(`/icons/lookup?name=${encodeURIComponent(name)}`),

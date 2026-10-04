@@ -4,7 +4,19 @@ import { CSS } from "@dnd-kit/utilities";
 import { imageUrl } from "../api.js";
 import ResourceCard from "./ResourceCard.jsx";
 
-export default function CategoryCard({ category, isAdmin, isEditMode, onEditCategory, onDeleteCategory, onAddResource, onEditResource, onDeleteResource }) {
+export default function CategoryCard({
+  category,
+  isAdmin,
+  isEditMode,
+  selectMode,
+  selectedIds,
+  onToggleSelectResource,
+  onEditCategory,
+  onDeleteCategory,
+  onAddResource,
+  onEditResource,
+  onDeleteResource,
+}) {
   const canEdit = isAdmin && isEditMode;
 
   const {
@@ -17,7 +29,7 @@ export default function CategoryCard({ category, isAdmin, isEditMode, onEditCate
   } = useSortable({
     id: `categorycard-${category.id}`,
     data: { type: "category", category },
-    disabled: !canEdit,
+    disabled: !canEdit || selectMode,
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -37,7 +49,7 @@ export default function CategoryCard({ category, isAdmin, isEditMode, onEditCate
   return (
     <div ref={setSortableRef} style={style} className={"category-card" + (isDragging ? " dragging" : "")}>
       <div className="category-header">
-        {canEdit ? (
+        {canEdit && !selectMode ? (
           <button type="button" className="drag-handle" aria-label={`Drag to reorder ${category.name}`} title="Drag to reorder" {...attributes} {...listeners}>
             ⠿
           </button>
@@ -46,7 +58,12 @@ export default function CategoryCard({ category, isAdmin, isEditMode, onEditCate
           {src ? <img src={src} alt="" /> : <span className="category-icon-fallback">{category.name[0]?.toUpperCase()}</span>}
         </span>
         <h2 className="category-name">{category.name}</h2>
-        {canEdit ? (
+        {category.admin_only && isAdmin ? (
+          <span className="category-admin-badge" title="Hidden from regular users">
+            🔒
+          </span>
+        ) : null}
+        {canEdit && !selectMode ? (
           <div className="category-actions">
             <button type="button" className="icon-btn" onClick={() => onEditCategory(category)} aria-label={`Edit ${category.name}`} title="Edit category">
               ✎
@@ -61,13 +78,23 @@ export default function CategoryCard({ category, isAdmin, isEditMode, onEditCate
       <div ref={setDroppableRef} className={"category-resource-list" + (isOver ? " drop-active" : "")}>
         <SortableContext items={resourceIds} strategy={verticalListSortingStrategy}>
           {category.resources.map((r) => (
-            <ResourceCard key={r.id} resource={r} isAdmin={isAdmin} isEditMode={isEditMode} onEdit={onEditResource} onDelete={onDeleteResource} />
+            <ResourceCard
+              key={r.id}
+              resource={r}
+              isAdmin={isAdmin}
+              isEditMode={isEditMode}
+              selectMode={selectMode}
+              isSelected={selectedIds?.has(r.id)}
+              onToggleSelect={onToggleSelectResource}
+              onEdit={onEditResource}
+              onDelete={onDeleteResource}
+            />
           ))}
         </SortableContext>
         {category.resources.length === 0 ? <div className="category-empty">No resources yet.</div> : null}
       </div>
 
-      {canEdit ? (
+      {canEdit && !selectMode ? (
         <button type="button" className="btn btn-add-resource" onClick={() => onAddResource(category)}>
           + Add resource
         </button>

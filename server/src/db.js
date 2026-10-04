@@ -26,6 +26,9 @@ export async function migrate() {
   await pool.query("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS dashboard_title TEXT NOT NULL DEFAULT 'Dashboard'");
   await pool.query("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS dashboard_icon TEXT NOT NULL DEFAULT '🚀'");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'system'");
+  await pool.query("ALTER TABLE categories ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAULT FALSE");
+  await pool.query("ALTER TABLE resources ADD COLUMN IF NOT EXISTS last_check_ok BOOLEAN");
+  await pool.query("ALTER TABLE resources ADD COLUMN IF NOT EXISTS last_checked_at TIMESTAMPTZ");
   await pool.query(`
     CREATE TABLE IF NOT EXISTS pangolin_settings (
       id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
@@ -34,6 +37,12 @@ export async function migrate() {
       org_id TEXT,
       auto_sync_enabled BOOLEAN NOT NULL DEFAULT FALSE,
       last_synced_at TIMESTAMPTZ
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pangolin_ignored_urls (
+      url TEXT PRIMARY KEY,
+      ignored_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
 }
