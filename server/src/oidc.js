@@ -108,14 +108,48 @@ export async function saveSettings({ enabled, providerName, issuerUrl, clientId,
     [!!enabled, nextProviderName, nextIssuerUrl, nextClientId, secretEnc, nextRedirectUri, nextScopes]
   );
   cachedSettings = rows[0];
+  clearRetry();
   return reinitClient();
+}
+
+// The provider is often still starting when this app boots (host reboot, Keycloak behind a proxy),
+// so a failed discovery at startup is retried in the background instead of leaving SSO off until
+// the next restart.
+const RETRY_DELAY_MS = 30 * 1000;
+let retryTimer = null;
+
+function clearRetry() {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+}
+
+function scheduleRetry() {
+  clearRetry();
+  retryTimer = setTimeout(async () => {
+    retryTimer = null;
+    await loadSettings();
+    if (!cachedSettings?.enabled) return;
+    const result = await reinitClient();
+    if (result.ok) {
+      console.log(`OIDC SSO enabled after retry (issuer: ${cachedSettings.issuer_url})`);
+    } else {
+      console.error(`OIDC SSO still failing to initialize, retrying in ${RETRY_DELAY_MS / 1000}s:`, result.error);
+      scheduleRetry();
+    }
+  }, RETRY_DELAY_MS);
 }
 
 export async function initOidc() {
   await loadSettings();
   if (cachedSettings?.enabled) {
     const result = await reinitClient();
-    if (result.ok) console.log(`OIDC SSO enabled (issuer: ${cachedSettings.issuer_url})`);
-    else console.error("OIDC SSO is enabled but failed to initialize:", result.error);
+    if (result.ok) {
+      console.log(`OIDC SSO enabled (issuer: ${cachedSettings.issuer_url})`);
+    } else {
+      console.error("OIDC SSO is enabled but failed to initialize:", result.error);
+      scheduleRetry();
+    }
   }
 }
